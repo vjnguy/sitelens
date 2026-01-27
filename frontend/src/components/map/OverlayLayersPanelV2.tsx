@@ -214,45 +214,53 @@ export function OverlayLayersPanelV2({
     setLayerOpacity(initialOpacity);
   }, []);
 
-  // Restore persisted layers when map becomes available
+  // Restore persisted layers or enable default layers when map becomes available
   useEffect(() => {
     if (!map || hasRestoredState.current || isRestoringLayers.current) return;
 
     const persistedState = loadPersistedLayerState();
-    if (!persistedState || persistedState.activeLayers.length === 0) {
+
+    // Determine which layers to restore/enable
+    const layersToEnable: OverlayLayer[] = [];
+
+    if (persistedState && persistedState.activeLayers.length > 0) {
+      // Use persisted layers
+      layersToEnable.push(
+        ...persistedState.activeLayers
+          .map(id => ALL_LAYERS.find(l => l.id === id))
+          .filter((l): l is OverlayLayer => l !== undefined)
+      );
+    } else {
+      // No persisted state - enable default layers
+      layersToEnable.push(
+        ...ALL_LAYERS.filter(l => l.defaultEnabled)
+      );
+    }
+
+    if (layersToEnable.length === 0) {
       hasRestoredState.current = true;
       return;
     }
 
-    // Restore layers
+    // Restore/enable layers
     const restoreLayers = async () => {
       isRestoringLayers.current = true;
 
-      const layersToRestore = persistedState.activeLayers
-        .map(id => ALL_LAYERS.find(l => l.id === id))
-        .filter((l): l is OverlayLayer => l !== undefined);
-
-      if (layersToRestore.length === 0) {
-        hasRestoredState.current = true;
-        isRestoringLayers.current = false;
-        return;
-      }
-
       // Mark all as loading
-      setLoadingLayers(new Set(layersToRestore.map(l => l.id)));
+      setLoadingLayers(new Set(layersToEnable.map(l => l.id)));
 
       // Add layers sequentially to avoid race conditions
       const restoredIds = new Set<string>();
-      for (const layer of layersToRestore) {
+      for (const layer of layersToEnable) {
         try {
-          const opacity = persistedState.layerOpacity[layer.id] ?? layer.style.opacity;
+          const opacity = persistedState?.layerOpacity[layer.id] ?? layer.style.opacity;
           await addOverlayLayer(map, {
             ...layer,
             style: { ...layer.style, opacity },
           });
           restoredIds.add(layer.id);
         } catch (error) {
-          console.warn(`Failed to restore layer ${layer.id}:`, error);
+          console.warn(`Failed to enable layer ${layer.id}:`, error);
         }
       }
 

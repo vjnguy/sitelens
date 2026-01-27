@@ -218,10 +218,42 @@ export const QLD_STATE_LAYERS: OverlayLayer[] = [
   // PLANNING LAYERS
   // ============================================================================
   {
-    id: 'qld-cadastre',
-    name: 'Property Boundaries (Cadastre)',
+    id: 'qld-cadastre-vector',
+    name: 'Property Boundaries',
     category: 'boundaries',
-    description: 'Queensland cadastral boundaries (lot/plan)',
+    description: 'Queensland property boundaries (lot/plan) - vector tiles',
+    level: 'state',
+    sourceId: 'qld-spatial',
+    coverage: {
+      bounds: QLD_BOUNDS,
+      states: ['QLD'],
+    },
+    service: {
+      type: 'vector-tiles',
+      url: `${AGOL_TILES}/QLD_DCDB_GDA2020/VectorTileServer/tile/{z}/{y}/{x}.pbf`,
+      sourceLayer: 'QLD_DCDB_GDA2020',
+      geometryType: 'polygon',
+    },
+    style: {
+      opacity: 0.8,
+      minZoom: 14,
+      maxZoom: 22,
+      fillColor: 'transparent',
+      strokeColor: '#000000',
+      strokeWidth: 1,
+      legend: [
+        { label: 'Property Boundary', color: '#000000' },
+      ],
+    },
+    quality: 'authoritative',
+    tags: ['cadastre', 'property', 'boundaries', 'lot', 'dcdb'],
+    defaultEnabled: true,
+  },
+  {
+    id: 'qld-cadastre',
+    name: 'Property Boundaries (Raster)',
+    category: 'boundaries',
+    description: 'Queensland cadastral boundaries (lot/plan) - raster tiles',
     level: 'state',
     sourceId: 'qld-spatial',
     coverage: {

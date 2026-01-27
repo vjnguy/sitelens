@@ -466,6 +466,10 @@ export async function addOverlayLayer(
     const geomType = config.geometryType || 'polygon';
 
     if (geomType === 'polygon') {
+      // Check if fill should be transparent (no fill, outline only)
+      const isTransparentFill = fillColor === 'transparent' || fillColor === 'rgba(0,0,0,0)';
+      const fillOpacity = isTransparentFill ? 0 : layer.style.opacity * 0.6;
+
       // Add fill layer
       map.addLayer(
         {
@@ -474,8 +478,8 @@ export async function addOverlayLayer(
           source: sourceId,
           'source-layer': config.sourceLayer,
           paint: {
-            'fill-color': fillColor,
-            'fill-opacity': layer.style.opacity * 0.6,
+            'fill-color': isTransparentFill ? '#000000' : fillColor,
+            'fill-opacity': fillOpacity,
           },
           minzoom: layer.style.minZoom || 0,
           maxzoom: layer.style.maxZoom || 22,
