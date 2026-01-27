@@ -131,14 +131,12 @@ export function getArcGISDynamicTileUrl(
     `size=${tileSize},${tileSize}`,
   ];
 
-  // Add specific layers if defined
-  if (config.layers && config.layers.length > 0) {
-    queryParts.push(`layers=show:${config.layers.join(',')}`);
-  }
-
-  // Add dynamic layers for custom symbology if defined
+  // Add dynamic layers for custom symbology if defined (takes precedence over layers)
   if (config.dynamicLayers) {
     queryParts.push(`dynamicLayers=${encodeURIComponent(config.dynamicLayers)}`);
+  } else if (config.layers && config.layers.length > 0) {
+    // Only add layers parameter if dynamicLayers is not defined
+    queryParts.push(`layers=show:${config.layers.join(',')}`);
   }
 
   // Base URL without bbox
