@@ -38,6 +38,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [occupation, setOccupation] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
@@ -46,6 +47,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setSuccess(null);
 
     if (!occupation) {
       setError("Please select your occupation");
@@ -57,6 +59,7 @@ export default function RegisterPage() {
       email,
       password,
       options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
         data: {
           full_name: name,
           user_type: occupation,
@@ -73,7 +76,7 @@ export default function RegisterPage() {
     // Check if email confirmation is required
     if (data.user && !data.session) {
       // Email confirmation required
-      setError("Please check your email to confirm your account.");
+      setSuccess("Account created! Please check your email to confirm your account.");
       setLoading(false);
       return;
     }
@@ -118,6 +121,12 @@ export default function RegisterPage() {
               {error && (
                 <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-lg">
                   {error}
+                </div>
+              )}
+
+              {success && (
+                <div className="bg-green-500/10 border border-green-500/20 text-green-400 text-sm p-3 rounded-lg">
+                  {success}
                 </div>
               )}
 
