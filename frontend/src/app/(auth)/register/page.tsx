@@ -8,20 +8,35 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Workflow } from "lucide-react";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { MapPin, ArrowLeft, Loader2 } from "lucide-react";
+
+const OCCUPATIONS = [
+  { value: "property-developer", label: "Property Developer" },
+  { value: "town-planner", label: "Town Planner / Urban Planner" },
+  { value: "architect", label: "Architect" },
+  { value: "real-estate-agent", label: "Real Estate Agent" },
+  { value: "surveyor", label: "Surveyor" },
+  { value: "builder", label: "Builder / Construction Manager" },
+  { value: "property-investor", label: "Property Investor" },
+  { value: "council-government", label: "Council / Government" },
+  { value: "environmental-consultant", label: "Environmental Consultant" },
+  { value: "civil-engineer", label: "Civil Engineer" },
+  { value: "property-lawyer", label: "Property Lawyer / Conveyancer" },
+  { value: "valuer", label: "Valuer" },
+  { value: "other", label: "Other" },
+];
 
 export default function RegisterPage() {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [organizationName, setOrganizationName] = useState("");
+  const [occupation, setOccupation] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -32,107 +47,167 @@ export default function RegisterPage() {
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signUp({
+    if (!occupation) {
+      setError("Please select your occupation");
+      setLoading(false);
+      return;
+    }
+
+    const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          full_name: fullName,
-          organization_name: organizationName,
+          full_name: name,
+          user_type: occupation,
         },
       },
     });
 
-    if (error) {
-      setError(error.message);
+    if (signUpError) {
+      setError(signUpError.message);
       setLoading(false);
-    } else {
-      router.push("/dashboard");
-      router.refresh();
+      return;
     }
+
+    // Check if email confirmation is required
+    if (data.user && !data.session) {
+      // Email confirmation required
+      setError("Please check your email to confirm your account.");
+      setLoading(false);
+      return;
+    }
+
+    router.push("/app");
+    router.refresh();
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/50">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <Link href="/" className="flex items-center gap-2">
-              <Workflow className="h-8 w-8 text-primary" />
-              <span className="text-xl font-bold">ConnectFlow</span>
+    <div className="min-h-screen bg-[#0a0a0f] flex flex-col">
+      {/* Header */}
+      <header className="p-6">
+        <Link href="/" className="inline-flex items-center gap-2 text-zinc-400 hover:text-white transition-colors">
+          <ArrowLeft className="h-4 w-4" />
+          <span className="text-sm">Back to home</span>
+        </Link>
+      </header>
+
+      {/* Main content */}
+      <div className="flex-1 flex items-center justify-center px-6 pb-12">
+        <div className="w-full max-w-sm">
+          {/* Logo */}
+          <div className="text-center mb-8">
+            <Link href="/" className="inline-flex items-center gap-2.5">
+              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
+                <MapPin className="h-5 w-5 text-white" />
+              </div>
+              <span className="text-2xl font-semibold text-white">Siteora</span>
             </Link>
           </div>
-          <CardTitle>Create an account</CardTitle>
-          <CardDescription>
-            Get started with ConnectFlow for free
-          </CardDescription>
-        </CardHeader>
-        <form onSubmit={handleRegister}>
-          <CardContent className="space-y-4">
-            {error && (
-              <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
-                {error}
+
+          {/* Form card */}
+          <div className="bg-zinc-900 rounded-2xl border border-white/10 p-8">
+            <div className="text-center mb-6">
+              <h1 className="text-xl font-semibold text-white mb-2">Create an account</h1>
+              <p className="text-sm text-zinc-400">
+                Get started with Siteora for free
+              </p>
+            </div>
+
+            <form onSubmit={handleRegister} className="space-y-4">
+              {error && (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-lg">
+                  {error}
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-zinc-300">Full Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="John Smith"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-orange-500 focus:ring-orange-500/20"
+                />
               </div>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name</Label>
-              <Input
-                id="fullName"
-                type="text"
-                placeholder="John Doe"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                required
-              />
+
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-zinc-300">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@company.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-orange-500 focus:ring-orange-500/20"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-zinc-300">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="At least 6 characters"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  minLength={6}
+                  required
+                  className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-orange-500 focus:ring-orange-500/20"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="occupation" className="text-zinc-300">Occupation</Label>
+                <Select value={occupation} onValueChange={setOccupation} required>
+                  <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white focus:border-orange-500 focus:ring-orange-500/20 [&>span]:text-zinc-500 [&[data-state=open]>span]:text-white [&>span[data-placeholder]]:text-zinc-500">
+                    <SelectValue placeholder="Select your occupation" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-800 border-zinc-700">
+                    {OCCUPATIONS.map((occ) => (
+                      <SelectItem
+                        key={occ.value}
+                        value={occ.value}
+                        className="text-zinc-300 focus:bg-zinc-700 focus:text-white"
+                      >
+                        {occ.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white h-11 font-medium"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Creating account...
+                  </>
+                ) : (
+                  "Create Account"
+                )}
+              </Button>
+            </form>
+
+            <div className="mt-6 pt-6 border-t border-zinc-800 text-center">
+              <p className="text-sm text-zinc-500">
+                Already have an account?{" "}
+                <Link href="/login" className="text-orange-400 hover:text-orange-300">
+                  Sign in
+                </Link>
+              </p>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="organizationName">Organization Name</Label>
-              <Input
-                id="organizationName"
-                type="text"
-                placeholder="Acme Engineering"
-                value={organizationName}
-                onChange={(e) => setOrganizationName(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@company.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="At least 6 characters"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                minLength={6}
-                required
-              />
-            </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Creating account..." : "Create Account"}
-            </Button>
-            <p className="text-sm text-muted-foreground">
-              Already have an account?{" "}
-              <Link href="/login" className="text-primary hover:underline">
-                Sign in
-              </Link>
-            </p>
-          </CardFooter>
-        </form>
-      </Card>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

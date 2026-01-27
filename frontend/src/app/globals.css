@@ -90,3 +90,40 @@ body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
 }
+
+/* Mapbox Popup Styles */
+.mapboxgl-popup-content {
+  padding: 0;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.mapboxgl-popup-tip {
+  border-top-color: white;
+}
+
+.dark .mapboxgl-popup-content {
+  background: hsl(222.2 84% 4.9%);
+  color: hsl(210 40% 98%);
+}
+
+.dark .mapboxgl-popup-tip {
+  border-top-color: hsl(222.2 84% 4.9%);
+}
+
+.da-hover-popup .mapboxgl-popup-content,
+.sales-hover-popup .mapboxgl-popup-content {
+  animation: popup-fade-in 0.15s ease-out;
+}
+
+@keyframes popup-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

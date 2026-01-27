@@ -35,9 +35,23 @@ import {
   FileJson,
   Globe,
   FileUp,
+  MapPinned,
+  FileArchive,
+  CheckCircle2,
+  AlertCircle,
+  ExternalLink,
 } from "lucide-react";
 import type { Layer, LayerStyle, Feature, FeatureCollection } from "@/types/gis";
 import { cn } from "@/lib/utils";
+import {
+  importFile,
+  importFromUrl,
+  getSupportedFileTypes,
+  getFormatDescription,
+  type ImportResult,
+} from "@/lib/import/file-import";
+import { OverlayLayersPanelV2 } from "./OverlayLayersPanelV2";
+import { LegendLayer } from "./MapLegend";
 
 interface LayerGroup {
   id: string;
@@ -48,6 +62,7 @@ interface LayerGroup {
 
 interface LayersPanelProps {
   layers: Layer[];
+  map?: mapboxgl.Map | null;
   onToggleVisibility: (layerId: string) => void;
   onRemoveLayer: (layerId: string) => void;
   onZoomToExtent: (layerId: string) => void;
@@ -55,14 +70,16 @@ interface LayersPanelProps {
   onAddLayer: () => void;
   onAddCustomLayer?: (name: string, geojson: FeatureCollection) => void;
   onClose: () => void;
+  onActiveLegendLayersChange?: (layers: LegendLayer[]) => void;
   className?: string;
 }
 
-type TabType = "layers" | "data" | "code";
+type TabType = "layers" | "overlays" | "data" | "code";
 type ViewMode = "table" | "list";
 
 export function LayersPanel({
   layers,
+  map,
   onToggleVisibility,
   onRemoveLayer,
   onZoomToExtent,
@@ -70,9 +87,10 @@ export function LayersPanel({
   onAddLayer,
   onAddCustomLayer,
   onClose,
+  onActiveLegendLayersChange,
   className,
 }: LayersPanelProps) {
-  const [activeTab, setActiveTab] = useState<TabType>("layers");
+  const [activeTab, setActiveTab] = useState<TabType>("overlays"); // Default to overlays tab
   const [viewMode, setViewMode] = useState<ViewMode>("table");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -88,6 +106,8 @@ export function LayersPanel({
   const [customDataError, setCustomDataError] = useState<string | null>(null);
   const [customDataUrl, setCustomDataUrl] = useState("");
   const [isLoadingUrl, setIsLoadingUrl] = useState(false);
+  const [isLoadingFile, setIsLoadingFile] = useState(false);
+  const [lastImportResult, setLastImportResult] = useState<ImportResult | null>(null);
 
   // Code editor
   const [codeContent, setCodeContent] = useState(`// Spatial analysis code
@@ -213,23 +233,23 @@ if (cadastre) {
 
     setIsLoadingUrl(true);
     setCustomDataError(null);
+    setLastImportResult(null);
 
     try {
-      const response = await fetch(customDataUrl);
-      if (!response.ok) throw new Error("Failed to fetch");
+      const result = await importFromUrl(customDataUrl);
+      setLastImportResult(result);
 
-      const data = await response.json();
-
-      if (data.type !== "FeatureCollection" || !Array.isArray(data.features)) {
-        setCustomDataError("URL must return a GeoJSON FeatureCollection");
+      if (!result.success || !result.data) {
+        setCustomDataError(result.error || "Failed to load data from URL");
         return;
       }
 
-      // Extract name from URL
+      // Extract name from URL (remove extension and query params)
       const urlParts = customDataUrl.split("/");
-      const fileName = urlParts[urlParts.length - 1].replace(".geojson", "").replace(".json", "");
+      let fileName = urlParts[urlParts.length - 1].split("?")[0];
+      fileName = fileName.replace(/\.(geojson|json|kml|kmz|zip|shp)$/i, "");
 
-      onAddCustomLayer?.(fileName || "Loaded Layer", data);
+      onAddCustomLayer?.(fileName || "Imported Layer", result.data);
       setCustomDataUrl("");
       setShowCustomInput(false);
     } catch (err) {
@@ -239,33 +259,40 @@ if (cadastre) {
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const text = event.target?.result as string;
-        const geojson = JSON.parse(text);
+    setIsLoadingFile(true);
+    setCustomDataError(null);
+    setLastImportResult(null);
 
-        if (geojson.type !== "FeatureCollection" || !Array.isArray(geojson.features)) {
-          setCustomDataError("File must contain a GeoJSON FeatureCollection");
-          return;
-        }
+    try {
+      const result = await importFile(file);
+      setLastImportResult(result);
 
-        const name = file.name.replace(".geojson", "").replace(".json", "");
-        onAddCustomLayer?.(name, geojson);
-        setShowCustomInput(false);
-      } catch (err) {
-        setCustomDataError("Invalid GeoJSON file");
+      if (!result.success || !result.data) {
+        setCustomDataError(result.error || "Failed to parse file");
+        return;
       }
-    };
-    reader.readAsText(file);
+
+      // Remove extension from filename
+      const name = file.name.replace(/\.(geojson|json|kml|kmz|zip|shp)$/i, "");
+      onAddCustomLayer?.(name, result.data);
+      setShowCustomInput(false);
+    } catch (err) {
+      setCustomDataError("Failed to parse file");
+    } finally {
+      setIsLoadingFile(false);
+    }
+
+    // Reset input
+    e.target.value = "";
   };
 
   const tabs: { id: TabType; label: string; icon: typeof Layers }[] = [
     { id: "layers", label: "Layers", icon: Layers },
+    { id: "overlays", label: "Overlays", icon: Globe },
     { id: "data", label: "Data", icon: Database },
     { id: "code", label: "Code", icon: Code },
   ];
@@ -653,6 +680,16 @@ if (cadastre) {
         </>
       )}
 
+      {/* Overlays Tab */}
+      {activeTab === "overlays" && (
+        <div className="flex-1 overflow-y-auto p-2">
+          <OverlayLayersPanelV2
+            map={map || null}
+            onActiveLegendLayersChange={onActiveLegendLayersChange}
+          />
+        </div>
+      )}
+
       {/* Data Tab */}
       {activeTab === "data" && (
         <div className="flex-1 overflow-y-auto p-3">
@@ -676,18 +713,62 @@ if (cadastre) {
               {/* File Upload */}
               <div className="space-y-2">
                 <Label className="text-xs font-medium">Upload File</Label>
-                <label className="flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/30 transition-colors">
-                  <FileUp className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">
-                    Drop GeoJSON file or click to browse
-                  </span>
+                <label className={cn(
+                  "flex flex-col items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors",
+                  isLoadingFile ? "opacity-50 cursor-wait" : "hover:bg-muted/30 hover:border-primary/50"
+                )}>
+                  {isLoadingFile ? (
+                    <Loader2 className="h-6 w-6 text-primary animate-spin" />
+                  ) : (
+                    <FileUp className="h-6 w-6 text-muted-foreground" />
+                  )}
+                  <div className="text-center">
+                    <span className="text-sm text-foreground font-medium">
+                      {isLoadingFile ? "Processing..." : "Drop file or click to browse"}
+                    </span>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      GeoJSON, KML, KMZ, Shapefile (.zip)
+                    </p>
+                  </div>
                   <input
                     type="file"
-                    accept=".geojson,.json"
+                    accept={getSupportedFileTypes()}
                     onChange={handleFileUpload}
                     className="hidden"
+                    disabled={isLoadingFile}
                   />
                 </label>
+
+                {/* Import result feedback */}
+                {lastImportResult && (
+                  <div className={cn(
+                    "flex items-start gap-2 p-2 rounded-lg text-xs",
+                    lastImportResult.success
+                      ? "bg-green-500/10 text-green-700 dark:text-green-400"
+                      : "bg-destructive/10 text-destructive"
+                  )}>
+                    {lastImportResult.success ? (
+                      <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    )}
+                    <div>
+                      {lastImportResult.success ? (
+                        <>
+                          <p className="font-medium">Imported {lastImportResult.featureCount} features</p>
+                          <p className="text-muted-foreground">
+                            Format: {getFormatDescription(lastImportResult.format)}
+                            {lastImportResult.extractedImages && lastImportResult.extractedImages > 0 && (
+                              <> • {lastImportResult.extractedImages} images extracted</>
+                            )}
+                          </p>
+                        </>
+                      ) : (
+                        <p>{lastImportResult.error}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* URL Input */}

@@ -10,6 +10,61 @@ import { cn } from '@/lib/utils';
 // Set Mapbox access token from environment variable
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
+// localStorage key for persisting map position
+const MAP_POSITION_KEY = 'siteora-map-position';
+
+interface SavedMapPosition {
+  center: [number, number];
+  zoom: number;
+  bearing?: number;
+  pitch?: number;
+  timestamp: number;
+}
+
+// Load saved map position from localStorage
+function loadSavedPosition(): SavedMapPosition | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const saved = localStorage.getItem(MAP_POSITION_KEY);
+    if (saved) {
+      const position = JSON.parse(saved) as SavedMapPosition;
+      // Only use saved position if it's less than 30 days old
+      const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+      if (Date.now() - position.timestamp < thirtyDays) {
+        return position;
+      }
+    }
+  } catch (e) {
+    console.warn('[MapViewer] Failed to load saved position:', e);
+  }
+  return null;
+}
+
+// Save map position to localStorage
+function savePosition(center: [number, number], zoom: number, bearing?: number, pitch?: number): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const position: SavedMapPosition = {
+      center,
+      zoom,
+      bearing,
+      pitch,
+      timestamp: Date.now(),
+    };
+    localStorage.setItem(MAP_POSITION_KEY, JSON.stringify(position));
+  } catch (e) {
+    console.warn('[MapViewer] Failed to save position:', e);
+  }
+}
+
+// Property click data returned when user clicks on a property parcel
+export interface PropertyClickData {
+  lotPlan: string;
+  coordinates: [number, number];
+  address?: string;
+  properties?: Record<string, unknown>;
+}
+
 interface MapViewerProps {
   className?: string;
   initialCenter?: [number, number];
@@ -21,6 +76,7 @@ interface MapViewerProps {
   onFeatureClick?: (feature: Feature, layerId: string) => void;
   onFeatureHover?: (feature: Feature | null, layerId: string) => void;
   onStyleChange?: (style: MapStyle) => void;
+  onPropertyClick?: (data: PropertyClickData) => void;
   interactive?: boolean;
   showControls?: boolean;
 }
@@ -44,6 +100,7 @@ export const MapViewer = forwardRef<MapViewerRef, MapViewerProps>(({
   onFeatureClick,
   onFeatureHover,
   onStyleChange,
+  onPropertyClick,
   interactive = true,
   showControls = true,
 }, ref) => {
@@ -108,12 +165,26 @@ export const MapViewer = forwardRef<MapViewerRef, MapViewerProps>(({
       console.log('[MapViewer] Initializing with token:', MAPBOX_TOKEN?.substring(0, 20) + '...');
       mapboxgl.accessToken = MAPBOX_TOKEN;
 
+      // Try to restore saved position
+      const savedPosition = loadSavedPosition();
+      const startCenter = savedPosition?.center || initialCenter;
+      const startZoom = savedPosition?.zoom || initialZoom;
+      const startBearing = savedPosition?.bearing || 0;
+      const startPitch = savedPosition?.pitch || 0;
+
+      if (savedPosition) {
+        console.log('[MapViewer] Restoring saved position:', savedPosition);
+      }
+
       const map = new mapboxgl.Map({
         container: mapContainer.current,
         style: MAPBOX_STYLES[initialStyle],
-        center: initialCenter,
-        zoom: initialZoom,
+        center: startCenter,
+        zoom: startZoom,
+        bearing: startBearing,
+        pitch: startPitch,
         interactive,
+        preserveDrawingBuffer: true, // Required for map snapshot/export
       });
 
       if (showControls) {
@@ -128,6 +199,42 @@ export const MapViewer = forwardRef<MapViewerRef, MapViewerProps>(({
         mapLoaded = true;
         setIsLoaded(true);
         onMapLoad?.(map);
+
+        // Add click handler for property parcels (cadastre layers)
+        // This enables click-to-analyze functionality
+        map.on('click', (e) => {
+          if (!onPropertyClick) return;
+
+          // Query all layers at the click point for property features
+          const features = map.queryRenderedFeatures(e.point);
+
+          // Look for property/cadastre features
+          // Property layers typically have lot/plan info in their properties
+          for (const feature of features) {
+            const props = feature.properties || {};
+
+            // Check for common property identifier fields
+            const lotPlan = props.LOTPLAN || props.lotplan || props.LOT_PLAN ||
+                           props.lot_plan || props.LotPlan || props.lotPlan ||
+                           (props.LOT && props.PLAN ? `${props.LOT}/${props.PLAN}` : null) ||
+                           (props.lot && props.plan ? `${props.lot}/${props.plan}` : null);
+
+            if (lotPlan) {
+              const address = props.ADDRESS || props.address || props.ADDR ||
+                             props.SITE_ADDRESS || props.site_address || undefined;
+
+              onPropertyClick({
+                lotPlan: String(lotPlan),
+                coordinates: [e.lngLat.lng, e.lngLat.lat],
+                address: address ? String(address) : undefined,
+                properties: props,
+              });
+
+              // Stop after first property match
+              return;
+            }
+          }
+        });
       });
 
       // Timeout fallback - if map doesn't load in 20 seconds, show error
@@ -153,11 +260,18 @@ export const MapViewer = forwardRef<MapViewerRef, MapViewerProps>(({
 
       map.on('moveend', () => {
         const center = map.getCenter();
+        const zoom = map.getZoom();
+        const bearing = map.getBearing();
+        const pitch = map.getPitch();
+
+        // Save position to localStorage for persistence
+        savePosition([center.lng, center.lat], zoom, bearing, pitch);
+
         onMapMove?.({
           center: [center.lng, center.lat],
-          zoom: map.getZoom(),
-          bearing: map.getBearing(),
-          pitch: map.getPitch(),
+          zoom,
+          bearing,
+          pitch,
         });
       });
 

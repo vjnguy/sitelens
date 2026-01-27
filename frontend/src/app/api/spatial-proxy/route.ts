@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
 
   // Only allow requests to trusted spatial data servers
   const allowedHosts = [
+    'services5.arcgis.com',  // Logan City Council ArcGIS Online
     'spatial-gis.information.qld.gov.au',
     'portal.spatial.nsw.gov.au',
     'opendata.transport.nsw.gov.au',

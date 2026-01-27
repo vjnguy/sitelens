@@ -179,11 +179,11 @@ export const DATA_SOURCES: DataSourceConfig[] = [
           { name: 'lot_area', label: 'Area (sqm)', type: 'number', filterable: false },
         ],
         defaultStyle: {
-          type: 'fill',
+          type: 'line',
           paint: {
-            'fill-color': '#e67e22',
-            'fill-opacity': 0.3,
-            'fill-outline-color': '#d35400',
+            'line-color': '#000000',
+            'line-width': 1,
+            'line-opacity': 0.8,
           },
         },
       },
@@ -241,6 +241,138 @@ export const DATA_SOURCES: DataSourceConfig[] = [
           paint: {
             'fill-color': '#3498db',
             'fill-opacity': 0.25,
+            'fill-outline-color': '#2980b9',
+          },
+        },
+      },
+      {
+        id: 'heritage-register',
+        name: 'Heritage Register',
+        endpoint: '/Boundaries/AdminBoundariesFramework/MapServer/78',
+        layerId: 78,
+        geometryType: 'polygon',
+        fields: [
+          { name: 'placename', label: 'Place Name', type: 'string', filterable: true },
+          { name: 'place_id', label: 'Place ID', type: 'number', filterable: true },
+        ],
+        defaultStyle: {
+          type: 'fill',
+          paint: {
+            'fill-color': '#9b59b6',
+            'fill-opacity': 0.4,
+            'fill-outline-color': '#8e44ad',
+          },
+        },
+      },
+      {
+        id: 'mses-protected-areas',
+        name: 'Protected Areas (MSES)',
+        endpoint: '/Environment/MattersOfStateEnvironmentalSignificance/MapServer/1',
+        layerId: 1,
+        geometryType: 'polygon',
+        fields: [
+          { name: 'mses_name', label: 'Name', type: 'string', filterable: true },
+          { name: 'mses_type', label: 'Type', type: 'string', filterable: true },
+        ],
+        defaultStyle: {
+          type: 'fill',
+          paint: {
+            'fill-color': '#27ae60',
+            'fill-opacity': 0.4,
+            'fill-outline-color': '#1e8449',
+          },
+        },
+      },
+      {
+        id: 'mses-wetlands',
+        name: 'High Ecological Wetlands',
+        endpoint: '/Environment/MattersOfStateEnvironmentalSignificance/MapServer/11',
+        layerId: 11,
+        geometryType: 'polygon',
+        fields: [
+          { name: 'wetland_id', label: 'Wetland ID', type: 'string', filterable: true },
+          { name: 'wetland_name', label: 'Wetland Name', type: 'string', filterable: true },
+        ],
+        defaultStyle: {
+          type: 'fill',
+          paint: {
+            'fill-color': '#1abc9c',
+            'fill-opacity': 0.4,
+            'fill-outline-color': '#16a085',
+          },
+        },
+      },
+      {
+        id: 'mses-wildlife-habitat',
+        name: 'Wildlife Habitat (Endangered)',
+        endpoint: '/Environment/MattersOfStateEnvironmentalSignificance/MapServer/21',
+        layerId: 21,
+        geometryType: 'polygon',
+        fields: [
+          { name: 'species', label: 'Species', type: 'string', filterable: true },
+          { name: 'habitat_type', label: 'Habitat Type', type: 'string', filterable: true },
+        ],
+        defaultStyle: {
+          type: 'fill',
+          paint: {
+            'fill-color': '#f39c12',
+            'fill-opacity': 0.4,
+            'fill-outline-color': '#d68910',
+          },
+        },
+      },
+      {
+        id: 'mses-koala-habitat',
+        name: 'Koala Habitat (Core)',
+        endpoint: '/Environment/MattersOfStateEnvironmentalSignificance/MapServer/23',
+        layerId: 23,
+        geometryType: 'polygon',
+        fields: [
+          { name: 'habitat_value', label: 'Habitat Value', type: 'string', filterable: true },
+        ],
+        defaultStyle: {
+          type: 'fill',
+          paint: {
+            'fill-color': '#95a5a6',
+            'fill-opacity': 0.4,
+            'fill-outline-color': '#7f8c8d',
+          },
+        },
+      },
+      {
+        id: 'mses-vegetation',
+        name: 'Regulated Vegetation',
+        endpoint: '/Environment/MattersOfStateEnvironmentalSignificance/MapServer/15',
+        layerId: 15,
+        geometryType: 'polygon',
+        fields: [
+          { name: 're_label', label: 'Regional Ecosystem', type: 'string', filterable: true },
+          { name: 'veg_class', label: 'Vegetation Class', type: 'string', filterable: true },
+        ],
+        defaultStyle: {
+          type: 'fill',
+          paint: {
+            'fill-color': '#2ecc71',
+            'fill-opacity': 0.3,
+            'fill-outline-color': '#27ae60',
+          },
+        },
+      },
+      {
+        id: 'flood-studies',
+        name: 'Flood Study Areas',
+        endpoint: '/FloodCheck/FloodStudies/MapServer/0',
+        layerId: 0,
+        geometryType: 'polygon',
+        fields: [
+          { name: 'study_name', label: 'Study Name', type: 'string', filterable: true },
+          { name: 'study_date', label: 'Study Date', type: 'date', filterable: false },
+        ],
+        defaultStyle: {
+          type: 'fill',
+          paint: {
+            'fill-color': '#3498db',
+            'fill-opacity': 0.4,
             'fill-outline-color': '#2980b9',
           },
         },

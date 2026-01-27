@@ -3,7 +3,7 @@ from functools import lru_cache
 
 
 class Settings(BaseSettings):
-    app_name: str = "SiteLens API"
+    app_name: str = "Siteora API"
     debug: bool = False
 
     # Supabase

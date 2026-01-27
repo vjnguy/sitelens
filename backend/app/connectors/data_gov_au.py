@@ -234,7 +234,7 @@ class PropertyDataConnector:
             response = await client.get(
                 nominatim_url,
                 params=params,
-                headers={"User-Agent": "SiteLens/1.0"},
+                headers={"User-Agent": "Siteora/1.0"},
             )
             response.raise_for_status()
             results = response.json()

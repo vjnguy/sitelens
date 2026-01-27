@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 
 from app.core.config import get_settings
 from app.api import files, connectors, workflows, property, ai
+from app.api.v1 import da_tracking, property_sales, tiles
 
 
 @asynccontextmanager
@@ -17,7 +18,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="SiteLens API",
+    title="Siteora API",
     description="AI-Powered GIS Platform - Property analysis, spatial insights, and site assessment tools",
     version="0.1.0",
     lifespan=lifespan,
@@ -39,13 +40,16 @@ app.include_router(connectors.router, prefix="/api/v1")
 app.include_router(workflows.router, prefix="/api/v1")
 app.include_router(property.router, prefix="/api/v1")
 app.include_router(ai.router, prefix="/api/v1")
+app.include_router(da_tracking.router, prefix="/api/v1")
+app.include_router(property_sales.router, prefix="/api/v1")
+app.include_router(tiles.router, prefix="/api/v1")
 
 
 @app.get("/")
 async def root():
     """Health check endpoint."""
     return {
-        "name": "SiteLens API",
+        "name": "Siteora API",
         "status": "healthy",
         "version": "0.1.0",
     }

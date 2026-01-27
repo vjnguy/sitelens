@@ -1,4 +1,4 @@
--- SiteLens GIS Platform Schema
+-- Siteora GIS Platform Schema
 -- Migration 002: GIS-specific tables for projects, layers, datasets, and AI
 
 -- Projects table

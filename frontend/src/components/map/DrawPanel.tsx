@@ -30,6 +30,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
@@ -379,6 +385,8 @@ export function DrawPanel({
 
         setCircleCenter(null);
         setIsDrawingCircle(false);
+        // Return to select mode after drawing one circle
+        setActiveMode('simple_select');
       }
     };
 
@@ -400,8 +408,12 @@ export function DrawPanel({
     return () => {
       map.off('click', handleClick);
       map.off('mousemove', handleMouseMove);
-      removePreviewCircle();
+      // Clean up preview layers
+      if (map.getLayer('preview-circle-outline')) map.removeLayer('preview-circle-outline');
+      if (map.getLayer('preview-circle-fill')) map.removeLayer('preview-circle-fill');
+      if (map.getSource('preview-circle')) map.removeSource('preview-circle');
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, activeMode, circleCenter, isDrawingCircle, strokeColor, fillColor, strokeWidth, fillOpacity]);
 
   // Handle custom rectangle drawing
@@ -438,6 +450,8 @@ export function DrawPanel({
 
         setRectangleStart(null);
         setIsDrawingRectangle(false);
+        // Return to select mode after drawing one rectangle
+        setActiveMode('simple_select');
       }
     };
 
@@ -454,8 +468,12 @@ export function DrawPanel({
     return () => {
       map.off('click', handleClick);
       map.off('mousemove', handleMouseMove);
-      removePreviewRectangle();
+      // Clean up preview layers
+      if (map.getLayer('preview-rectangle-outline')) map.removeLayer('preview-rectangle-outline');
+      if (map.getLayer('preview-rectangle-fill')) map.removeLayer('preview-rectangle-fill');
+      if (map.getSource('preview-rectangle')) map.removeSource('preview-rectangle');
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, activeMode, rectangleStart, isDrawingRectangle, strokeColor, fillColor, strokeWidth, fillOpacity]);
 
   // Handle custom arrow drawing
@@ -469,16 +487,18 @@ export function DrawPanel({
         setArrowStart(point);
         setIsDrawingArrow(true);
       } else {
-        // Create arrow as a line with arrowhead
-        const arrowFeature = createArrowFeature(arrowStart, point);
+        // Create arrow as a line with arrowhead (returns array of features)
+        const arrowFeatures = createArrowFeature(arrowStart, point);
 
-        if (drawRef.current && arrowFeature) {
-          drawRef.current.add(arrowFeature);
+        if (drawRef.current && arrowFeatures.length > 0) {
+          arrowFeatures.forEach(f => drawRef.current?.add(f));
           onFeaturesChange?.(drawRef.current.getAll());
         }
 
         setArrowStart(null);
         setIsDrawingArrow(false);
+        // Return to select mode after drawing
+        setActiveMode('simple_select');
       }
     };
 
@@ -640,15 +660,16 @@ export function DrawPanel({
     return Math.sqrt((point[0] - closestX) ** 2 + (point[1] - closestY) ** 2);
   };
 
-  // Create arrow feature with arrowhead
-  const createArrowFeature = useCallback((start: [number, number], end: [number, number]): Feature | null => {
+  // Create arrow feature with arrowhead - simple line + triangle
+  const createArrowFeature = useCallback((start: [number, number], end: [number, number]): Feature[] => {
     // Calculate angle for arrowhead
     const dx = end[0] - start[0];
     const dy = end[1] - start[1];
     const angle = Math.atan2(dy, dx);
+    const length = Math.sqrt(dx * dx + dy * dy);
 
-    // Arrowhead size (proportional to map scale)
-    const arrowSize = Math.sqrt(dx * dx + dy * dy) * 0.15;
+    // Arrowhead size (proportional to line length, with min/max)
+    const arrowSize = Math.max(length * 0.12, 0.0003);
     const arrowAngle = Math.PI / 6; // 30 degrees
 
     // Calculate arrowhead points
@@ -661,11 +682,25 @@ export function DrawPanel({
       end[1] - arrowSize * Math.sin(angle + arrowAngle),
     ];
 
-    // Create a polygon that includes the line and arrowhead
-    const arrowPolygon: Feature = {
+    // Create line (the shaft)
+    const arrowLine: Feature = {
       type: 'Feature',
       properties: {
-        shape: 'arrow',
+        shape: 'arrow-line',
+        stroke: strokeColor,
+        'stroke-width': strokeWidth,
+      },
+      geometry: {
+        type: 'LineString',
+        coordinates: [start, end],
+      },
+    };
+
+    // Create arrowhead (triangle)
+    const arrowHead: Feature = {
+      type: 'Feature',
+      properties: {
+        shape: 'arrow-head',
         stroke: strokeColor,
         fill: strokeColor,
         'stroke-width': strokeWidth,
@@ -674,20 +709,15 @@ export function DrawPanel({
       geometry: {
         type: 'Polygon',
         coordinates: [[
-          start,
-          [start[0] + (end[0] - start[0]) * 0.02, start[1] + (end[1] - start[1]) * 0.02 - 0.0001],
-          [end[0] - arrowSize * 0.3 * Math.cos(angle), end[1] - arrowSize * 0.3 * Math.sin(angle) - 0.0001],
-          arrowPoint1,
           end,
+          arrowPoint1,
           arrowPoint2,
-          [end[0] - arrowSize * 0.3 * Math.cos(angle), end[1] - arrowSize * 0.3 * Math.sin(angle) + 0.0001],
-          [start[0] + (end[0] - start[0]) * 0.02, start[1] + (end[1] - start[1]) * 0.02 + 0.0001],
-          start,
+          end,
         ]],
       },
     };
 
-    return arrowPolygon;
+    return [arrowLine, arrowHead];
   }, [strokeColor, strokeWidth]);
 
   // Handle inline text annotation
@@ -854,6 +884,53 @@ export function DrawPanel({
     setTextAnnotations(prev => [...prev, annotation]);
   }, [map, fillColor, strokeColor]);
 
+  // Save measurement as a permanent feature
+  const saveMeasurementAsFeature = useCallback(() => {
+    if (!drawRef.current || measurementPoints.length < 2) return;
+
+    if (measurementMode === 'distance') {
+      const line = turf.lineString(measurementPoints);
+      const length = turf.length(line, { units: 'meters' });
+
+      const feature: Feature = {
+        type: 'Feature',
+        properties: {
+          shape: 'measurement-line',
+          stroke: '#f0ad4e',
+          'stroke-width': 2,
+          measurement: `${length >= 1000 ? (length / 1000).toFixed(2) + ' km' : length.toFixed(1) + ' m'}`,
+        },
+        geometry: { type: 'LineString', coordinates: measurementPoints },
+      };
+
+      drawRef.current.add(feature);
+      onFeaturesChange?.(drawRef.current.getAll());
+    } else if (measurementMode === 'area' && measurementPoints.length >= 3) {
+      const closed = [...measurementPoints, measurementPoints[0]];
+      const polygon = turf.polygon([closed]);
+      const area = turf.area(polygon);
+
+      const feature: Feature = {
+        type: 'Feature',
+        properties: {
+          shape: 'measurement-area',
+          stroke: '#f0ad4e',
+          fill: '#f0ad4e',
+          'stroke-width': 2,
+          'fill-opacity': 0.2,
+          measurement: area >= 10000 ? `${(area / 10000).toFixed(2)} ha` : `${area.toFixed(0)} m²`,
+        },
+        geometry: { type: 'Polygon', coordinates: [closed] },
+      };
+
+      drawRef.current.add(feature);
+      onFeaturesChange?.(drawRef.current.getAll());
+    }
+
+    // Clear measurement after saving
+    setMeasurementPoints([]);
+  }, [measurementPoints, measurementMode, onFeaturesChange]);
+
   // Handle measurement mode
   useEffect(() => {
     if (!map || !measurementMode) return;
@@ -865,6 +942,12 @@ export function DrawPanel({
 
     const handleDblClick = (e: mapboxgl.MapMouseEvent) => {
       e.preventDefault();
+      // Double-click saves the measurement and returns to select mode
+      if (measurementPoints.length >= 2) {
+        saveMeasurementAsFeature();
+        setMeasurementMode(null);
+        setActiveMode('simple_select');
+      }
     };
 
     map.on('click', handleClick);
@@ -874,7 +957,7 @@ export function DrawPanel({
       map.off('click', handleClick);
       map.off('dblclick', handleDblClick);
     };
-  }, [map, measurementMode]);
+  }, [map, measurementMode, measurementPoints, saveMeasurementAsFeature]);
 
   // Update measurement visualization
   useEffect(() => {
@@ -1041,14 +1124,17 @@ export function DrawPanel({
   const updatePreviewArrow = useCallback((start: [number, number], end: [number, number]) => {
     if (!map) return;
 
-    const sourceId = 'preview-arrow';
-    const layerId = 'preview-arrow-fill';
+    const lineSourceId = 'preview-arrow-line';
+    const headSourceId = 'preview-arrow-head';
+    const lineLayerId = 'preview-arrow-line-layer';
+    const headLayerId = 'preview-arrow-head-layer';
 
     // Calculate arrow shape
     const dx = end[0] - start[0];
     const dy = end[1] - start[1];
     const angle = Math.atan2(dy, dx);
-    const arrowSize = Math.sqrt(dx * dx + dy * dy) * 0.15;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    const arrowSize = Math.max(length * 0.12, 0.0003);
     const arrowAngle = Math.PI / 6;
 
     const arrowPoint1: [number, number] = [
@@ -1060,43 +1146,50 @@ export function DrawPanel({
       end[1] - arrowSize * Math.sin(angle + arrowAngle),
     ];
 
-    // Simple arrow as line + triangle head
-    const arrowLine: Feature = {
+    // Line (shaft)
+    const lineFeature: Feature = {
+      type: 'Feature',
+      properties: {},
+      geometry: { type: 'LineString', coordinates: [start, end] },
+    };
+
+    // Arrowhead (triangle)
+    const headFeature: Feature = {
       type: 'Feature',
       properties: {},
       geometry: {
         type: 'Polygon',
-        coordinates: [[
-          start,
-          [start[0] + (end[0] - start[0]) * 0.02, start[1] + (end[1] - start[1]) * 0.02 - 0.0001],
-          [end[0] - arrowSize * 0.3 * Math.cos(angle), end[1] - arrowSize * 0.3 * Math.sin(angle) - 0.0001],
-          arrowPoint1,
-          end,
-          arrowPoint2,
-          [end[0] - arrowSize * 0.3 * Math.cos(angle), end[1] - arrowSize * 0.3 * Math.sin(angle) + 0.0001],
-          [start[0] + (end[0] - start[0]) * 0.02, start[1] + (end[1] - start[1]) * 0.02 + 0.0001],
-          start,
-        ]],
+        coordinates: [[end, arrowPoint1, arrowPoint2, end]],
       },
     };
 
-    if (map.getSource(sourceId)) {
-      (map.getSource(sourceId) as mapboxgl.GeoJSONSource).setData(arrowLine);
+    if (map.getSource(lineSourceId)) {
+      (map.getSource(lineSourceId) as mapboxgl.GeoJSONSource).setData(lineFeature);
+      (map.getSource(headSourceId) as mapboxgl.GeoJSONSource).setData(headFeature);
     } else {
-      map.addSource(sourceId, { type: 'geojson', data: arrowLine });
+      map.addSource(lineSourceId, { type: 'geojson', data: lineFeature });
+      map.addSource(headSourceId, { type: 'geojson', data: headFeature });
       map.addLayer({
-        id: layerId,
+        id: lineLayerId,
+        type: 'line',
+        source: lineSourceId,
+        paint: { 'line-color': strokeColor, 'line-width': strokeWidth },
+      });
+      map.addLayer({
+        id: headLayerId,
         type: 'fill',
-        source: sourceId,
-        paint: { 'fill-color': strokeColor, 'fill-opacity': 0.8 },
+        source: headSourceId,
+        paint: { 'fill-color': strokeColor, 'fill-opacity': 1 },
       });
     }
-  }, [map, strokeColor]);
+  }, [map, strokeColor, strokeWidth]);
 
   const removePreviewArrow = useCallback(() => {
     if (!map) return;
-    if (map.getLayer('preview-arrow-fill')) map.removeLayer('preview-arrow-fill');
-    if (map.getSource('preview-arrow')) map.removeSource('preview-arrow');
+    if (map.getLayer('preview-arrow-line-layer')) map.removeLayer('preview-arrow-line-layer');
+    if (map.getLayer('preview-arrow-head-layer')) map.removeLayer('preview-arrow-head-layer');
+    if (map.getSource('preview-arrow-line')) map.removeSource('preview-arrow-line');
+    if (map.getSource('preview-arrow-head')) map.removeSource('preview-arrow-head');
   }, [map]);
 
   const updatePreviewFreehand = useCallback((points: [number, number][]) => {
@@ -1377,24 +1470,28 @@ export function DrawPanel({
   if (!map) return null;
 
   const renderToolButton = (tool: { mode: DrawMode; icon: typeof MousePointer2; label: string; shortcut: string }) => (
-    <Button
-      key={tool.mode}
-      size="sm"
-      variant={activeMode === tool.mode ? 'default' : 'outline'}
-      className="h-9 w-full p-0"
-      onClick={() => setMode(tool.mode)}
-      title={`${tool.label} (${tool.shortcut})`}
-    >
-      <tool.icon className="h-4 w-4" />
-    </Button>
+    <Tooltip key={tool.mode}>
+      <TooltipTrigger asChild>
+        <Button
+          size="sm"
+          variant={activeMode === tool.mode ? 'default' : 'outline'}
+          className="h-9 w-full p-0"
+          onClick={() => setMode(tool.mode)}
+        >
+          <tool.icon className="h-4 w-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">
+        <p>{tool.label} ({tool.shortcut})</p>
+      </TooltipContent>
+    </Tooltip>
   );
 
   const hasSelection = selectedFeatures.length > 0;
 
   return (
     <div className={cn(
-      "absolute top-20 right-4 bottom-20 w-64 z-10 pointer-events-auto",
-      "bg-background/95 backdrop-blur rounded-lg shadow-lg flex flex-col overflow-hidden",
+      "bg-background/95 backdrop-blur rounded-lg shadow-lg flex flex-col overflow-hidden h-full",
       className
     )}>
       {/* Header */}
@@ -1410,47 +1507,54 @@ export function DrawPanel({
 
       {/* Tools */}
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
-        {/* Selection Tools */}
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Selection</p>
-          <div className="grid grid-cols-4 gap-1">
-            {SELECTION_TOOLS.map(renderToolButton)}
+        <TooltipProvider delayDuration={200}>
+          {/* Selection Tools */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Selection</p>
+            <div className="grid grid-cols-4 gap-1">
+              {SELECTION_TOOLS.map(renderToolButton)}
+            </div>
           </div>
-        </div>
 
-        {/* Shape Tools */}
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Shapes</p>
-          <div className="grid grid-cols-4 gap-1">
-            {SHAPE_TOOLS.map(renderToolButton)}
+          {/* Shape Tools */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Shapes</p>
+            <div className="grid grid-cols-4 gap-1">
+              {SHAPE_TOOLS.map(renderToolButton)}
+            </div>
+            {(activeMode === 'draw_circle' || activeMode === 'draw_rectangle' || activeMode === 'draw_arrow' || activeMode === 'draw_freehand') && (
+              <p className="text-xs text-muted-foreground">
+                {activeMode === 'draw_freehand'
+                  ? 'Click and drag to draw freely'
+                  : `Click to set ${activeMode === 'draw_circle' ? 'center, then edge' : activeMode === 'draw_arrow' ? 'start, then end point' : 'first corner, then opposite corner'}`}
+              </p>
+            )}
           </div>
-          {(activeMode === 'draw_circle' || activeMode === 'draw_rectangle' || activeMode === 'draw_arrow' || activeMode === 'draw_freehand') && (
-            <p className="text-xs text-muted-foreground">
-              {activeMode === 'draw_freehand'
-                ? 'Click and drag to draw freely'
-                : `Click to set ${activeMode === 'draw_circle' ? 'center, then edge' : activeMode === 'draw_arrow' ? 'start, then end point' : 'first corner, then opposite corner'}`}
-            </p>
-          )}
-        </div>
 
-        {/* Annotation Tools */}
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Annotations</p>
-          <div className="grid grid-cols-4 gap-1">
-            {ANNOTATION_TOOLS.map(renderToolButton)}
+          {/* Annotation Tools */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Annotations</p>
+            <div className="grid grid-cols-4 gap-1">
+              {ANNOTATION_TOOLS.map(renderToolButton)}
+            </div>
+            {activeMode === 'draw_text' && (
+              <p className="text-xs text-muted-foreground">Click on map to add text (double-click to edit)</p>
+            )}
           </div>
-          {activeMode === 'draw_text' && (
-            <p className="text-xs text-muted-foreground">Click on map to add text (double-click to edit)</p>
-          )}
-        </div>
 
-        {/* Measurement Tools */}
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Measure</p>
-          <div className="grid grid-cols-4 gap-1">
-            {MEASURE_TOOLS.map(renderToolButton)}
+          {/* Measurement Tools */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Measure</p>
+            <div className="grid grid-cols-4 gap-1">
+              {MEASURE_TOOLS.map(renderToolButton)}
+            </div>
+            {(activeMode === 'measure_distance' || activeMode === 'measure_area') && (
+              <p className="text-xs text-muted-foreground">
+                Click points on map. Double-click to finish and save.
+              </p>
+            )}
           </div>
-        </div>
+        </TooltipProvider>
 
         {/* Measurement Results */}
         {measurement && (
@@ -1479,17 +1583,32 @@ export function DrawPanel({
                 )}
               </>
             )}
-            <Button
-              size="sm"
-              variant="ghost"
-              className="w-full h-7 text-xs"
-              onClick={() => {
-                setMeasurementMode(null);
-                setMeasurementPoints([]);
-              }}
-            >
-              Clear Measurement
-            </Button>
+            <p className="text-[10px] text-muted-foreground">Double-click to finish, or use buttons below</p>
+            <div className="flex gap-1">
+              <Button
+                size="sm"
+                variant="default"
+                className="flex-1 h-7 text-xs"
+                onClick={() => {
+                  saveMeasurementAsFeature();
+                  setMeasurementMode(null);
+                  setActiveMode('simple_select');
+                }}
+              >
+                Save as Drawing
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="flex-1 h-7 text-xs"
+                onClick={() => {
+                  setMeasurementMode(null);
+                  setMeasurementPoints([]);
+                }}
+              >
+                Discard
+              </Button>
+            </div>
           </div>
         )}
 
@@ -1652,38 +1771,68 @@ export function DrawPanel({
 
       {/* Actions */}
       <div className="p-3 border-t space-y-2">
-        <div className="flex gap-1">
-          <Button
-            size="sm"
-            variant="outline"
-            className="flex-1 h-8"
-            onClick={duplicateSelected}
-            disabled={selectedFeatures.length === 0}
-          >
-            <Copy className="h-3 w-3 mr-1" />
-            Copy
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="flex-1 h-8 text-destructive"
-            onClick={deleteSelected}
-            disabled={selectedFeatures.length === 0}
-          >
-            <Trash2 className="h-3 w-3 mr-1" />
-            Delete
-          </Button>
-        </div>
-        <div className="flex gap-1">
-          <Button size="sm" variant="outline" className="flex-1 h-8" onClick={clearAll}>
-            <RotateCcw className="h-3 w-3 mr-1" />
-            Clear
-          </Button>
-          <Button size="sm" variant="outline" className="flex-1 h-8" onClick={exportGeoJSON}>
-            <Download className="h-3 w-3 mr-1" />
-            Export
-          </Button>
-        </div>
+        <TooltipProvider delayDuration={300}>
+          <div className="flex gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1 h-8"
+                  onClick={duplicateSelected}
+                  disabled={selectedFeatures.length === 0}
+                >
+                  <Copy className="h-3 w-3 mr-1" />
+                  Copy
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Duplicate selected shapes</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1 h-8 text-destructive"
+                  onClick={deleteSelected}
+                  disabled={selectedFeatures.length === 0}
+                >
+                  <Trash2 className="h-3 w-3 mr-1" />
+                  Delete
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Delete selected (Backspace)</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          <div className="flex gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" variant="outline" className="flex-1 h-8" onClick={clearAll}>
+                  <RotateCcw className="h-3 w-3 mr-1" />
+                  Clear
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Clear all drawings</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" variant="outline" className="flex-1 h-8" onClick={exportGeoJSON}>
+                  <Download className="h-3 w-3 mr-1" />
+                  Export
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Export as GeoJSON</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </TooltipProvider>
       </div>
 
       {selectedFeatures.length > 0 && (

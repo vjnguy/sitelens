@@ -33,24 +33,40 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Protect dashboard routes
-  if (
-    !user &&
-    request.nextUrl.pathname.startsWith("/dashboard")
-  ) {
+  // Protect app routes (main map, saved, settings)
+  const protectedPaths = ["/app", "/saved", "/settings"];
+  const isProtectedPath = protectedPaths.some(path =>
+    request.nextUrl.pathname.startsWith(path)
+  );
+
+  // Redirect unauthenticated users to login for protected routes
+  if (!user && isProtectedPath) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  // Redirect logged in users away from auth pages
+  // Redirect logged in users away from auth pages to main app
   if (
     user &&
     (request.nextUrl.pathname === "/login" ||
       request.nextUrl.pathname === "/register")
   ) {
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    url.pathname = "/app"; // Redirect to main map page
+    return NextResponse.redirect(url);
+  }
+
+  // Redirect old dashboard routes to new app routes
+  if (request.nextUrl.pathname.startsWith("/dashboard")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/app"; // Redirect to main app
+    return NextResponse.redirect(url);
+  }
+
+  if (request.nextUrl.pathname.startsWith("/projects")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/app"; // Redirect to main app
     return NextResponse.redirect(url);
   }
 

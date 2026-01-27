@@ -1,5 +1,5 @@
 """
-AI Service for SiteLens
+AI Service for Siteora
 Provides Claude AI integration for natural language queries, code generation,
 and automated insights.
 """
@@ -19,7 +19,7 @@ class AIService:
     Uses Claude AI for intelligent query processing.
     """
 
-    SYSTEM_PROMPT = """You are SiteLens AI, an intelligent assistant for a GIS (Geographic Information System) platform focused on property and site analysis in Australia.
+    SYSTEM_PROMPT = """You are Siteora AI, an intelligent assistant for a GIS (Geographic Information System) platform focused on property and site analysis in Australia.
 
 Your capabilities include:
 1. **Spatial Analysis**: Help users understand spatial data, calculate areas, distances, and relationships between features.
@@ -29,7 +29,7 @@ Your capabilities include:
 
 When generating code, use the following available functions:
 - `gis.*` - Turf.js spatial analysis functions (area, buffer, intersect, union, etc.)
-- `sitelens.*` - Helper functions (filterByProperty, statistics, findNearby, etc.)
+- `siteora.*` - Helper functions (filterByProperty, statistics, findNearby, etc.)
 - `format.*` - Formatting helpers (area, length, coordinates)
 - `getLayer(name)` - Get a layer's data by name or ID
 - `selectedFeatures` - Currently selected features on the map
@@ -121,7 +121,7 @@ For Australian property data, reference:
 {description}
 
 The code should:
-1. Use the available gis.* and sitelens.* functions
+1. Use the available gis.* and siteora.* functions
 2. Include comments explaining each step
 3. Return the result (a FeatureCollection, feature, or value)
 4. Handle edge cases gracefully
@@ -256,7 +256,7 @@ You can check overlays for a specific location using the property report feature
 const layer = getLayer('your-layer-name');
 if (!layer) return null;
 
-const filtered = sitelens.filterByProperty(layer, 'propertyName', 'value');
+const filtered = siteora.filterByProperty(layer, 'propertyName', 'value');
 console.log('Filtered:', filtered.features.length, 'features');
 return filtered;""",
                 "explanation": "This code filters features from a layer based on a property value. Replace 'propertyName' and 'value' with your actual filter criteria.",

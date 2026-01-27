@@ -1,0 +1,25 @@
+{
+  "name": "siteora-demo-video",
+  "version": "1.0.0",
+  "description": "Siteora product demo video",
+  "scripts": {
+    "start": "remotion studio",
+    "build": "remotion render src/index.ts SiteoraDemo out/demo.mp4",
+    "render": "remotion render src/index.ts SiteoraDemo out/demo.mp4 --codec h264",
+    "generate-audio": "npx ts-node scripts/generate-voiceover.ts"
+  },
+  "dependencies": {
+    "@remotion/bundler": "^4.0.0",
+    "@remotion/cli": "^4.0.0",
+    "@types/node": "^20.19.30",
+    "@types/react": "^18.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "remotion": "^4.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {
+    "puppeteer": "^24.36.0"
+  }
+}
