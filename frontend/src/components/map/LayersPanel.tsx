@@ -672,7 +672,10 @@ if (cadastre) {
 
           {/* Add Layer Button */}
           <div className="p-2 border-t">
-            <Button size="sm" variant="outline" className="w-full" onClick={onAddLayer}>
+            <Button size="sm" variant="outline" className="w-full" onClick={() => {
+              setActiveTab("data");
+              setShowCustomInput(true);
+            }}>
               <Plus className="h-4 w-4 mr-1" />
               Add Layer
             </Button>
@@ -837,7 +840,7 @@ if (cadastre) {
               <div className="space-y-2">
                 <button
                   className="w-full p-3 rounded-lg border hover:bg-muted/50 transition-colors text-left"
-                  onClick={onAddLayer}
+                  onClick={() => setActiveTab("overlays")}
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <Database className="h-4 w-4 text-primary" />
