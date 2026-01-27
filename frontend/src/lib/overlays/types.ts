@@ -92,6 +92,8 @@ export interface ArcGISDynamicConfig extends BaseServiceConfig {
   format?: string;
   /** Tile size for export (default: 512) */
   tileSize?: number;
+  /** Custom dynamic layers JSON for symbology override */
+  dynamicLayers?: string;
 }
 
 export interface ArcGISFeatureConfig extends BaseServiceConfig {

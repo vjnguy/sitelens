@@ -136,6 +136,11 @@ export function getArcGISDynamicTileUrl(
     queryParts.push(`layers=show:${config.layers.join(',')}`);
   }
 
+  // Add dynamic layers for custom symbology if defined
+  if (config.dynamicLayers) {
+    queryParts.push(`dynamicLayers=${encodeURIComponent(config.dynamicLayers)}`);
+  }
+
   // Base URL without bbox
   const baseUrl = `${config.url}/export?${queryParts.join('&')}`;
 

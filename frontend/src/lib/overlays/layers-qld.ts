@@ -235,6 +235,26 @@ export const QLD_STATE_LAYERS: OverlayLayer[] = [
       format: 'png32',
       tileSize: 512,
       requiresProxy: true,
+      // Custom symbology: black outlines, no fill
+      dynamicLayers: JSON.stringify([{
+        id: 4,
+        source: { type: 'mapLayer', mapLayerId: 4 },
+        drawingInfo: {
+          renderer: {
+            type: 'simple',
+            symbol: {
+              type: 'esriSFS',
+              style: 'esriSFSNull',
+              outline: {
+                type: 'esriSLS',
+                style: 'esriSLSSolid',
+                color: [0, 0, 0, 255],
+                width: 1
+              }
+            }
+          }
+        }
+      }]),
     },
     style: {
       opacity: 0.9,
