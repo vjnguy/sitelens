@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { DemoVideo } from "@/components/landing/DemoVideo";
+import { Logo } from "@/components/Logo";
 import {
   ArrowRight,
-  MapPin,
   Layers,
   Shield,
   Building2,
@@ -30,9 +30,7 @@ export default function Home() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0f]/80 backdrop-blur-xl border-b border-white/5">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
-              <MapPin className="h-4 w-4 text-white" />
-            </div>
+            <Logo size="sm" />
             <span className="text-lg font-semibold text-white">Siteora</span>
           </Link>
 
@@ -511,9 +509,7 @@ export default function Home() {
             {/* Brand */}
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2.5 mb-4">
-                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
-                  <MapPin className="h-4 w-4 text-white" />
-                </div>
+                <Logo size="sm" />
                 <span className="font-semibold text-white">Siteora</span>
               </div>
               <p className="text-sm text-zinc-500 leading-relaxed">
