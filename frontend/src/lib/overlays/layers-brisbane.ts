@@ -4,12 +4,34 @@
  * Comprehensive planning overlays from Brisbane City Plan 2014
  * Source: Brisbane City Council Open Spatial Data
  * https://spatial-brisbane.opendata.arcgis.com/
+ *
+ * City Plan 2014 overlay reference (Part 8):
+ * https://www.brisbane.qld.gov.au/planning-and-building/planning-guidelines-and-tools/brisbane-city-plan-2014/brisbane-city-plan-2014-mapping/overlays
  */
 
 import { OverlayLayer } from './types';
 
 const BCC_ARCGIS = 'https://services2.arcgis.com/dEKgZETqwmDAh1rP/arcgis/rest/services';
 const UU_ARCGIS = 'https://services3.arcgis.com/ocUCNI2h4moKOpKX/arcgis/rest/services';
+
+// Common BCC source URL bases
+const BCC_OPEN_DATA = 'https://data.brisbane.qld.gov.au/explore/dataset';
+const BCC_SPATIAL = 'https://spatial-brisbane.opendata.arcgis.com';
+const BCC_CITYPLAN = 'https://cityplan.brisbane.qld.gov.au/eplan';
+const BCC_OVERLAYS_PAGE = 'https://www.brisbane.qld.gov.au/planning-and-building/planning-guidelines-and-tools/brisbane-city-plan-2014/brisbane-city-plan-2014-mapping/overlays';
+const BCC_FAM = 'https://fam.brisbane.qld.gov.au';
+
+const BCC_COVERAGE = {
+  bounds: [152.66, -27.54, 153.32, -27.05] as [number, number, number, number],
+  states: ['QLD'] as ['QLD'],
+  councils: ['brisbane'] as string[],
+};
+
+const UU_COVERAGE = {
+  bounds: [152.0, -27.54, 153.5, -27.0] as [number, number, number, number],
+  states: ['QLD'] as ['QLD'],
+  councils: ['brisbane', 'ipswich', 'lockyer-valley', 'scenic-rim', 'somerset'] as string[],
+};
 
 export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
   // ============================================================================
@@ -22,11 +44,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Cadastral property boundaries (lot/plan)',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/property_boundaries_parcel/FeatureServer/0`,
@@ -43,6 +61,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['cadastre', 'property', 'boundaries', 'lots'],
+    sourceUrl: `${BCC_SPATIAL}/datasets/property-boundaries-parcel`,
   },
 
   // ============================================================================
@@ -55,11 +74,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'City Plan 2014 zoning designations',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/Zoning/FeatureServer/0`,
@@ -86,6 +101,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     quality: 'authoritative',
     lastUpdated: '2025-01-20',
     tags: ['zoning', 'land-use', 'planning'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-zoning-overlay`,
   },
   {
     id: 'brisbane-neighbourhood-plans',
@@ -94,11 +110,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Neighbourhood plan boundaries',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/Neighbourhood_Plan_boundaries/FeatureServer/0`,
@@ -115,6 +127,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['neighbourhood-plan', 'local-plan', 'planning'],
+    sourceUrl: `${BCC_SPATIAL}/datasets/neighbourhood-plan-boundaries`,
   },
 
   // ============================================================================
@@ -128,11 +141,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Combined flood likelihood from river, creek, overland and storm tide',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/Flood_Awareness_Flood_Risk_Overall/FeatureServer/0`,
@@ -152,6 +161,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['flood', 'awareness', 'risk', 'combined', 'fam'],
+    sourceUrl: BCC_FAM,
   },
   {
     id: 'brisbane-flood-awareness-river',
@@ -160,11 +170,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Brisbane River flood likelihood zones',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/Flood_Awareness_River/FeatureServer/0`,
@@ -184,6 +190,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['flood', 'river', 'awareness', 'fam'],
+    sourceUrl: BCC_FAM,
   },
   {
     id: 'brisbane-flood-awareness-creek',
@@ -192,11 +199,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Creek and waterway flood likelihood zones',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/Flood_Awareness_Creek/FeatureServer/0`,
@@ -216,6 +219,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['flood', 'creek', 'awareness', 'fam'],
+    sourceUrl: BCC_FAM,
   },
   {
     id: 'brisbane-flood-awareness-overland',
@@ -224,11 +228,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Overland flow flood impact zones',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/Flood_Awareness_Overland_Flow/FeatureServer/0`,
@@ -249,6 +249,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['flood', 'overland', 'awareness', 'fam'],
+    sourceUrl: BCC_FAM,
   },
   // Historic flood extents
   {
@@ -258,11 +259,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Observed flood extent from February 2022 event',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/Flood_Awareness_Historic_Brisbane_River_and_Creek_Floods_Feb2022/FeatureServer/0`,
@@ -281,6 +278,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['flood', 'historic', '2022', 'fam'],
+    sourceUrl: BCC_FAM,
   },
   {
     id: 'brisbane-flood-historic-2011',
@@ -289,11 +287,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Observed flood extent from January 2011 event',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/Flood_Awareness_Historic_Brisbane_River_Floods_Jan2011/FeatureServer/0`,
@@ -312,6 +306,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['flood', 'historic', '2011', 'fam'],
+    sourceUrl: BCC_FAM,
   },
   {
     id: 'brisbane-flood-historic-1974',
@@ -320,11 +315,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Observed flood extent from January 1974 event',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/Flood_Awareness_Historic_Brisbane_River_Floods_Jan1974/FeatureServer/0`,
@@ -343,11 +334,13 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['flood', 'historic', '1974', 'fam'],
+    sourceUrl: BCC_FAM,
   },
 
   // ============================================================================
   // FLOOD HAZARDS - PLANNING OVERLAYS (Official City Plan overlays)
   // These are the regulatory flood planning overlays from Brisbane City Plan
+  // City Plan 2014 Section 8.2.9
   // ============================================================================
   {
     id: 'brisbane-flood-river',
@@ -356,11 +349,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Brisbane River flood planning areas (1-5) - City Plan overlay',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/Flood_overlay_Brisbane_River_flood_planning_area/FeatureServer/0`,
@@ -382,6 +371,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['flood', 'river', 'hazard', 'brisbane-river', 'planning'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-flood-overlay-brisbane-river-flood-planning-area`,
   },
   {
     id: 'brisbane-flood-creek',
@@ -390,11 +380,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Creek and waterway flood planning areas',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/Flood_overlay_Creek_waterway_flood_planning_area/FeatureServer/0`,
@@ -415,6 +401,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['flood', 'creek', 'waterway', 'hazard'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-flood-overlay-creek-waterway-flood-planning-area`,
   },
   {
     id: 'brisbane-flood-overland',
@@ -423,11 +410,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Overland flow flood planning areas',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/Flood_overlay_Overland_flow/FeatureServer/0`,
@@ -444,11 +427,13 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['flood', 'overland-flow', 'stormwater', 'hazard'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-flood-overlay-overland-flow`,
   },
 
   // ============================================================================
   // OTHER HAZARDS
   // ============================================================================
+  // City Plan 2014 Section 8.2.4
   {
     id: 'brisbane-bushfire',
     name: 'Bushfire Overlay',
@@ -456,11 +441,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Bushfire hazard areas and buffer zones',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/Bushfire_overlay/FeatureServer/0`,
@@ -479,7 +460,9 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['bushfire', 'fire', 'hazard', 'bal'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-bushfire-overlay`,
   },
+  // City Plan 2014 Section 8.2.14
   {
     id: 'brisbane-landslide',
     name: 'Landslide Overlay',
@@ -487,11 +470,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Landslide susceptibility areas',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/Landslide_overlay/FeatureServer/0`,
@@ -508,7 +487,9 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['landslide', 'geotechnical', 'slope', 'hazard'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-landslide-overlay`,
   },
+  // City Plan 2014 Section 8.2.5 - Coastal Hazard Overlay
   {
     id: 'brisbane-storm-tide',
     name: 'Coastal - Storm Tide',
@@ -516,11 +497,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Storm tide inundation areas',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/Coastal_hazard_overlay_Storm_tide/FeatureServer/0`,
@@ -538,11 +515,118 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['coastal', 'storm-tide', 'inundation', 'hazard'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-coastal-hazard-overlay-storm-tide`,
+  },
+  {
+    id: 'brisbane-coastal-erosion',
+    name: 'Coastal - Erosion Prone',
+    category: 'hazards',
+    description: 'Coastal erosion prone areas',
+    level: 'council',
+    sourceId: 'brisbane-council',
+    coverage: BCC_COVERAGE,
+    service: {
+      type: 'arcgis-feature',
+      url: `${BCC_ARCGIS}/Coastal_hazard_overlay_coastal_erosion/FeatureServer/0`,
+      format: 'geojson',
+      requiresProxy: false,
+    },
+    style: {
+      opacity: 0.6,
+      minZoom: 10,
+      maxZoom: 22,
+      fillColor: '#0369a1',
+      strokeColor: '#075985',
+      strokeWidth: 1,
+    },
+    quality: 'authoritative',
+    tags: ['coastal', 'erosion', 'hazard'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-coastal-hazard-overlay-coastal-erosion`,
+  },
+  {
+    id: 'brisbane-sea-level-rise',
+    name: 'Coastal - Sea Level Rise',
+    category: 'hazards',
+    description: 'Projected sea level rise impact areas',
+    level: 'council',
+    sourceId: 'brisbane-council',
+    coverage: BCC_COVERAGE,
+    service: {
+      type: 'arcgis-feature',
+      url: `${BCC_ARCGIS}/Coastal_hazard_overlay_Sea_level_rise/FeatureServer/0`,
+      format: 'geojson',
+      requiresProxy: false,
+    },
+    style: {
+      opacity: 0.5,
+      minZoom: 10,
+      maxZoom: 22,
+      fillColor: '#0284c7',
+      strokeColor: '#0369a1',
+      strokeWidth: 1,
+    },
+    quality: 'authoritative',
+    tags: ['coastal', 'sea-level', 'climate', 'hazard'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-coastal-hazard-overlay-sea-level-rise`,
+  },
+  {
+    id: 'brisbane-coastal-management',
+    name: 'Coastal Management District',
+    category: 'hazards',
+    description: 'Coastal management district areas',
+    level: 'council',
+    sourceId: 'brisbane-council',
+    coverage: BCC_COVERAGE,
+    service: {
+      type: 'arcgis-feature',
+      url: `${BCC_ARCGIS}/Coastal_hazard_overlay_Coastal_management_district/FeatureServer/0`,
+      format: 'geojson',
+      requiresProxy: false,
+    },
+    style: {
+      opacity: 0.4,
+      minZoom: 10,
+      maxZoom: 22,
+      fillColor: '#38bdf8',
+      strokeColor: '#0ea5e9',
+      strokeWidth: 1,
+    },
+    quality: 'authoritative',
+    tags: ['coastal', 'management', 'hazard'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-coastal-hazard-overlay-coastal-management-district`,
+  },
+  // City Plan 2014 Section 8.2.1 - Acid Sulfate Soils
+  {
+    id: 'brisbane-acid-sulfate-soils',
+    name: 'Acid Sulfate Soils',
+    category: 'environment',
+    description: 'Acid sulfate soil areas requiring management during construction',
+    level: 'council',
+    sourceId: 'brisbane-council',
+    coverage: BCC_COVERAGE,
+    service: {
+      type: 'arcgis-feature',
+      url: `${BCC_ARCGIS}/City_Plan_2014_PotentialAndActual_acid_sulfate_soils_overlay/FeatureServer/0`,
+      format: 'geojson',
+      requiresProxy: false,
+    },
+    style: {
+      opacity: 0.5,
+      minZoom: 10,
+      maxZoom: 22,
+      fillColor: '#facc15',
+      strokeColor: '#ca8a04',
+      strokeWidth: 1,
+    },
+    quality: 'authoritative',
+    tags: ['acid-sulfate', 'soils', 'construction', 'environment'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-potential-and-actual-acid-sulfate-soils`,
   },
 
   // ============================================================================
   // ENVIRONMENT
   // ============================================================================
+  // City Plan 2014 Section 8.2.3
   {
     id: 'brisbane-biodiversity',
     name: 'Biodiversity Areas',
@@ -550,11 +634,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Areas of ecological significance',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/Biodiversity_areas_overlay_Biodiversity_areas/FeatureServer/0`,
@@ -573,6 +653,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['biodiversity', 'ecology', 'vegetation', 'environment'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-biodiversity-areas-overlay-biodiversity-areas`,
   },
   {
     id: 'brisbane-koala-habitat',
@@ -581,11 +662,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Koala habitat protection areas',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/Biodiversity_areas_overlay_Koala_habitat_areas/FeatureServer/0`,
@@ -602,6 +679,91 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['koala', 'habitat', 'wildlife', 'environment'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-biodiversity-areas-overlay-koala-habitat-areas`,
+  },
+  // City Plan 2014 Section 8.2.22
+  {
+    id: 'brisbane-waterway-corridor',
+    name: 'Waterway Corridors',
+    category: 'environment',
+    description: 'Natural waterway setback and buffer areas',
+    level: 'council',
+    sourceId: 'brisbane-council',
+    coverage: BCC_COVERAGE,
+    service: {
+      type: 'arcgis-feature',
+      url: `${BCC_ARCGIS}/Waterway_corridors_overlay/FeatureServer/0`,
+      format: 'geojson',
+      requiresProxy: false,
+    },
+    style: {
+      opacity: 0.5,
+      minZoom: 12,
+      maxZoom: 22,
+      legend: [
+        { label: 'Core Waterway', color: '#0ea5e9' },
+        { label: 'Corridor Buffer', color: '#7dd3fc' },
+      ],
+    },
+    quality: 'authoritative',
+    tags: ['waterway', 'creek', 'river', 'setback', 'environment'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-waterway-corridors-overlay-waterway-corridors`,
+  },
+  // City Plan 2014 Section 8.2.17
+  {
+    id: 'brisbane-scenic-amenity',
+    name: 'Scenic Amenity',
+    category: 'environment',
+    description: 'Areas of high scenic/visual amenity value',
+    level: 'council',
+    sourceId: 'brisbane-council',
+    coverage: BCC_COVERAGE,
+    service: {
+      type: 'arcgis-feature',
+      url: `${BCC_ARCGIS}/Scenic_amenity_overlay/FeatureServer/0`,
+      format: 'geojson',
+      requiresProxy: false,
+    },
+    style: {
+      opacity: 0.4,
+      minZoom: 10,
+      maxZoom: 22,
+      legend: [
+        { label: 'Ridge Line', color: '#059669' },
+        { label: 'Scenic Route', color: '#10b981' },
+        { label: 'Significant Vegetation', color: '#34d399' },
+      ],
+    },
+    quality: 'authoritative',
+    tags: ['scenic', 'amenity', 'visual', 'views', 'environment'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-scenic-amenity-overlay`,
+  },
+  // City Plan 2014 Section 8.2.18 - Significant Landscape Tree (NEW)
+  {
+    id: 'brisbane-significant-landscape-tree',
+    name: 'Significant Landscape Trees',
+    category: 'environment',
+    description: 'Protected significant landscape trees',
+    level: 'council',
+    sourceId: 'brisbane-council',
+    coverage: BCC_COVERAGE,
+    service: {
+      type: 'arcgis-feature',
+      url: `${BCC_ARCGIS}/Significant_landscape_tree_overlay/FeatureServer/0`,
+      format: 'geojson',
+      requiresProxy: false,
+    },
+    style: {
+      opacity: 0.7,
+      minZoom: 14,
+      maxZoom: 22,
+      fillColor: '#15803d',
+      strokeColor: '#166534',
+      strokeWidth: 2,
+    },
+    quality: 'authoritative',
+    tags: ['tree', 'landscape', 'significant', 'vegetation', 'environment'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-significant-landscape-tree-overlay`,
   },
 
   // ============================================================================
@@ -614,11 +776,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Maximum building height zones',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/Building_height_overlay/FeatureServer/0`,
@@ -639,19 +797,17 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['height', 'building', 'storeys', 'planning'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-building-height-overlay`,
   },
+  // City Plan 2014 Section 8.2.19 - Traditional Building Character
   {
     id: 'brisbane-character-residential',
-    name: 'Character Residential',
+    name: 'Traditional Building Character',
     category: 'planning',
     description: 'Traditional building character areas with design controls',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/Traditional_building_character_overlay/FeatureServer/0`,
@@ -669,7 +825,90 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['character', 'heritage', 'traditional', 'demolition', 'planning'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-traditional-building-character-overlay`,
   },
+  // City Plan 2014 Section 8.2.7 - Dwelling House Character
+  {
+    id: 'brisbane-dwelling-house',
+    name: 'Dwelling House Character Overlay',
+    category: 'planning',
+    description: 'Areas with dwelling house character requirements',
+    level: 'council',
+    sourceId: 'brisbane-council',
+    coverage: BCC_COVERAGE,
+    service: {
+      type: 'arcgis-feature',
+      url: `${BCC_ARCGIS}/Dwelling_house_character_overlay/FeatureServer/0`,
+      format: 'geojson',
+      requiresProxy: false,
+    },
+    style: {
+      opacity: 0.4,
+      minZoom: 12,
+      maxZoom: 22,
+      fillColor: '#fef3c7',
+      strokeColor: '#d97706',
+      strokeWidth: 1,
+    },
+    quality: 'authoritative',
+    tags: ['dwelling', 'residential', 'character', 'planning'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-dwelling-house-character-overlay`,
+  },
+  // City Plan 2014 Section 8.2.15 - Pre-1911 Building (NEW)
+  {
+    id: 'brisbane-pre1911-building',
+    name: 'Pre-1911 Building Overlay',
+    category: 'planning',
+    description: 'Buildings constructed before 1911 with demolition controls',
+    level: 'council',
+    sourceId: 'brisbane-council',
+    coverage: BCC_COVERAGE,
+    service: {
+      type: 'arcgis-feature',
+      url: `${BCC_ARCGIS}/Pre1911_building_overlay/FeatureServer/0`,
+      format: 'geojson',
+      requiresProxy: false,
+    },
+    style: {
+      opacity: 0.6,
+      minZoom: 13,
+      maxZoom: 22,
+      fillColor: '#d946ef',
+      strokeColor: '#a21caf',
+      strokeWidth: 1,
+    },
+    quality: 'authoritative',
+    tags: ['pre-1911', 'building', 'heritage', 'demolition', 'planning'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-pre-1911-building-overlay`,
+  },
+  // Commercial Character Building (NEW)
+  {
+    id: 'brisbane-commercial-character',
+    name: 'Commercial Character Building',
+    category: 'planning',
+    description: 'Commercial buildings with character design controls',
+    level: 'council',
+    sourceId: 'brisbane-council',
+    coverage: BCC_COVERAGE,
+    service: {
+      type: 'arcgis-feature',
+      url: `${BCC_ARCGIS}/Commercial_character_building_overlay/FeatureServer/0`,
+      format: 'geojson',
+      requiresProxy: false,
+    },
+    style: {
+      opacity: 0.5,
+      minZoom: 13,
+      maxZoom: 22,
+      fillColor: '#e879f9',
+      strokeColor: '#c026d3',
+      strokeWidth: 1,
+    },
+    quality: 'authoritative',
+    tags: ['commercial', 'character', 'building', 'planning'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-commercial-character-building-overlay`,
+  },
+  // City Plan 2014 Section 8.2.2 - Airport Environs
   {
     id: 'brisbane-airport-environs',
     name: 'Airport Environs Overlay',
@@ -677,14 +916,10 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Airport noise corridors and height restrictions',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
-      url: `${BCC_ARCGIS}/Airport_environs_overlay/FeatureServer/0`,
+      url: `${BCC_ARCGIS}/City_Plan_2014_Airport_environs_overlay_Australian_Noise_Exposure_Forecast_ANEF/FeatureServer/0`,
       format: 'geojson',
       requiresProxy: false,
     },
@@ -701,7 +936,9 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['airport', 'noise', 'anef', 'flight-path', 'planning'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-airport-environs-overlay-obstacle-limitation-surfaces-ols-boundary`,
   },
+  // City Plan 2014 Section 8.2.21 - Transport Noise Corridor
   {
     id: 'brisbane-transport-noise',
     name: 'Transport Noise Corridor',
@@ -709,14 +946,10 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Road and rail noise impact areas',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
-      url: `${BCC_ARCGIS}/Transport_noise_corridor_overlay/FeatureServer/0`,
+      url: `${BCC_ARCGIS}/City_Plan_2014_Transport_noise_corridor_overlay_Brisbane_road_centreline/FeatureServer/0`,
       format: 'geojson',
       requiresProxy: false,
     },
@@ -731,22 +964,20 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['noise', 'transport', 'road', 'rail', 'planning'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-transport-noise-corridor-overlay`,
   },
+  // City Plan 2014 Section 8.2.20 - Transport Air Quality Corridor (NEW)
   {
-    id: 'brisbane-waterway-corridor',
-    name: 'Waterway Corridors',
-    category: 'environment',
-    description: 'Natural waterway setback and buffer areas',
+    id: 'brisbane-transport-air-quality',
+    name: 'Transport Air Quality Corridor',
+    category: 'planning',
+    description: 'Areas affected by transport-related air quality impacts',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
-      url: `${BCC_ARCGIS}/Waterway_corridors_overlay/FeatureServer/0`,
+      url: `${BCC_ARCGIS}/City_Plan_2014_Transport_air_quality_corridor_overlay_Transport_routes/FeatureServer/0`,
       format: 'geojson',
       requiresProxy: false,
     },
@@ -754,45 +985,14 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
       opacity: 0.5,
       minZoom: 12,
       maxZoom: 22,
-      legend: [
-        { label: 'Core Waterway', color: '#0ea5e9' },
-        { label: 'Corridor Buffer', color: '#7dd3fc' },
-      ],
+      strokeColor: '#78716c',
+      strokeWidth: 3,
     },
     quality: 'authoritative',
-    tags: ['waterway', 'creek', 'river', 'setback', 'environment'],
+    tags: ['air-quality', 'transport', 'corridor', 'planning'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-transport-air-quality-corridor-overlay`,
   },
-  {
-    id: 'brisbane-scenic-amenity',
-    name: 'Scenic Amenity',
-    category: 'environment',
-    description: 'Areas of high scenic/visual amenity value',
-    level: 'council',
-    sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
-    service: {
-      type: 'arcgis-feature',
-      url: `${BCC_ARCGIS}/Scenic_amenity_overlay/FeatureServer/0`,
-      format: 'geojson',
-      requiresProxy: false,
-    },
-    style: {
-      opacity: 0.4,
-      minZoom: 10,
-      maxZoom: 22,
-      legend: [
-        { label: 'Ridge Line', color: '#059669' },
-        { label: 'Scenic Route', color: '#10b981' },
-        { label: 'Significant Vegetation', color: '#34d399' },
-      ],
-    },
-    quality: 'authoritative',
-    tags: ['scenic', 'amenity', 'visual', 'views', 'environment'],
-  },
+  // City Plan 2014 Section 8.2.8 - Extractive Resources
   {
     id: 'brisbane-extractive-resources',
     name: 'Extractive Resources',
@@ -800,14 +1000,10 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Extractive industry (quarry) buffer areas',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
-      url: `${BCC_ARCGIS}/Extractive_resources_overlay/FeatureServer/0`,
+      url: `${BCC_ARCGIS}/Extractive_resources_Key_resource_area/FeatureServer/0`,
       format: 'geojson',
       requiresProxy: false,
     },
@@ -822,6 +1018,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['extractive', 'quarry', 'mining', 'resources', 'planning'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-extractive-resources-overlay-mining-tenement`,
   },
   {
     id: 'brisbane-special-entertainment',
@@ -830,11 +1027,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Areas with relaxed noise controls for entertainment venues',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/Special_entertainment_precinct_overlay/FeatureServer/0`,
@@ -851,11 +1044,172 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['entertainment', 'fortitude-valley', 'noise', 'nightlife', 'planning'],
+    sourceUrl: `${BCC_SPATIAL}/datasets/special-entertainment-precinct-overlay`,
+  },
+  {
+    id: 'brisbane-short-term-accommodation',
+    name: 'Short Term Accommodation',
+    category: 'planning',
+    description: 'Areas where short term accommodation is restricted',
+    level: 'council',
+    sourceId: 'brisbane-council',
+    coverage: BCC_COVERAGE,
+    service: {
+      type: 'arcgis-feature',
+      url: `${BCC_ARCGIS}/Short_term_accommodation_overlay/FeatureServer/0`,
+      format: 'geojson',
+      requiresProxy: false,
+    },
+    style: {
+      opacity: 0.4,
+      minZoom: 12,
+      maxZoom: 22,
+      fillColor: '#fda4af',
+      strokeColor: '#e11d48',
+      strokeWidth: 1,
+    },
+    quality: 'authoritative',
+    tags: ['airbnb', 'short-term', 'accommodation', 'planning'],
+    sourceUrl: `${BCC_SPATIAL}/datasets/short-term-accommodation-overlay`,
+  },
+  // City Plan 2014 Section 8.2.12 - Key Civic Space and Iconic Vista (NEW)
+  {
+    id: 'brisbane-key-civic-vista',
+    name: 'Key Civic Space & Iconic Vista',
+    category: 'planning',
+    description: 'Protected civic spaces and view corridors',
+    level: 'council',
+    sourceId: 'brisbane-council',
+    coverage: BCC_COVERAGE,
+    service: {
+      type: 'arcgis-feature',
+      url: `${BCC_ARCGIS}/City_Plan_2014_Key_Civic_Iconic_Vista/FeatureServer/0`,
+      format: 'geojson',
+      requiresProxy: false,
+    },
+    style: {
+      opacity: 0.5,
+      minZoom: 12,
+      maxZoom: 22,
+      fillColor: '#818cf8',
+      strokeColor: '#6366f1',
+      strokeWidth: 2,
+    },
+    quality: 'authoritative',
+    tags: ['civic', 'vista', 'view-corridor', 'planning'],
+    sourceUrl: `${BCC_SPATIAL}/datasets/city-plan-2014-key-civic-iconic-vista`,
+  },
+  // Industrial Amenity Overlay (NEW)
+  {
+    id: 'brisbane-industrial-amenity',
+    name: 'Industrial Amenity',
+    category: 'planning',
+    description: 'Industrial areas with amenity requirements for adjacent uses',
+    level: 'council',
+    sourceId: 'brisbane-council',
+    coverage: BCC_COVERAGE,
+    service: {
+      type: 'arcgis-feature',
+      url: `${BCC_ARCGIS}/Industrial_amenity_overlay/FeatureServer/0`,
+      format: 'geojson',
+      requiresProxy: false,
+    },
+    style: {
+      opacity: 0.4,
+      minZoom: 12,
+      maxZoom: 22,
+      fillColor: '#a78bfa',
+      strokeColor: '#7c3aed',
+      strokeWidth: 1,
+    },
+    quality: 'authoritative',
+    tags: ['industrial', 'amenity', 'buffer', 'planning'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-industrial-amenity-overlay`,
+  },
+  // Streetscape Hierarchy Overlay (NEW)
+  {
+    id: 'brisbane-streetscape-hierarchy',
+    name: 'Streetscape Hierarchy',
+    category: 'planning',
+    description: 'Street classification for landscaping and design standards',
+    level: 'council',
+    sourceId: 'brisbane-council',
+    coverage: BCC_COVERAGE,
+    service: {
+      type: 'arcgis-feature',
+      url: `${BCC_ARCGIS}/City_Plan_2014_Streetscape_hierarchy_overlay_Streetscape_hierarchy/FeatureServer/0`,
+      format: 'geojson',
+      requiresProxy: false,
+    },
+    style: {
+      opacity: 0.5,
+      minZoom: 13,
+      maxZoom: 22,
+      strokeColor: '#16a34a',
+      strokeWidth: 2,
+    },
+    quality: 'authoritative',
+    tags: ['streetscape', 'hierarchy', 'landscaping', 'planning'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-streetscape-hierarchy-overlay-streetscape-hierarchy`,
+  },
+  // Active Frontages in Residential Zones (NEW)
+  {
+    id: 'brisbane-active-frontages',
+    name: 'Active Frontages (Residential)',
+    category: 'planning',
+    description: 'Residential zones requiring active street frontage design',
+    level: 'council',
+    sourceId: 'brisbane-council',
+    coverage: BCC_COVERAGE,
+    service: {
+      type: 'arcgis-feature',
+      url: `${BCC_ARCGIS}/Active_frontages_in_residential_zones_overlay/FeatureServer/0`,
+      format: 'geojson',
+      requiresProxy: false,
+    },
+    style: {
+      opacity: 0.5,
+      minZoom: 13,
+      maxZoom: 22,
+      strokeColor: '#0d9488',
+      strokeWidth: 2,
+    },
+    quality: 'authoritative',
+    tags: ['active-frontage', 'residential', 'design', 'planning'],
+    sourceUrl: `${BCC_SPATIAL}/datasets/active-frontages-in-residential-zones-overlay`,
+  },
+  // Dwelling House Overlay (separate from character)
+  {
+    id: 'brisbane-dwelling-house-overlay',
+    name: 'Dwelling House Overlay',
+    category: 'planning',
+    description: 'Dwelling house siting and design requirements',
+    level: 'council',
+    sourceId: 'brisbane-council',
+    coverage: BCC_COVERAGE,
+    service: {
+      type: 'arcgis-feature',
+      url: `${BCC_ARCGIS}/Dwelling_house_overlay/FeatureServer/0`,
+      format: 'geojson',
+      requiresProxy: false,
+    },
+    style: {
+      opacity: 0.4,
+      minZoom: 12,
+      maxZoom: 22,
+      fillColor: '#fef9c3',
+      strokeColor: '#ca8a04',
+      strokeWidth: 1,
+    },
+    quality: 'authoritative',
+    tags: ['dwelling', 'house', 'siting', 'planning'],
+    sourceUrl: `${BCC_SPATIAL}/datasets/dwelling-house-overlay`,
   },
 
   // ============================================================================
   // HERITAGE
   // ============================================================================
+  // City Plan 2014 Section 8.2.10
   {
     id: 'brisbane-heritage',
     name: 'Heritage Overlay',
@@ -863,11 +1217,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Local heritage places and adjoining areas',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/Heritage_overlay/FeatureServer/0`,
@@ -885,6 +1235,34 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['heritage', 'historic', 'conservation'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-heritage-overlay-local-heritage-area`,
+  },
+  // City Plan 2014 Section 8.2.13 - Landscape Heritage (NEW)
+  {
+    id: 'brisbane-landscape-heritage',
+    name: 'Landscape Heritage',
+    category: 'heritage',
+    description: 'Areas of landscape heritage significance',
+    level: 'council',
+    sourceId: 'brisbane-council',
+    coverage: BCC_COVERAGE,
+    service: {
+      type: 'arcgis-feature',
+      url: `${BCC_ARCGIS}/Landscape_heritage_overlay/FeatureServer/0`,
+      format: 'geojson',
+      requiresProxy: false,
+    },
+    style: {
+      opacity: 0.5,
+      minZoom: 11,
+      maxZoom: 22,
+      fillColor: '#a78bfa',
+      strokeColor: '#7c3aed',
+      strokeWidth: 2,
+    },
+    quality: 'authoritative',
+    tags: ['landscape', 'heritage', 'historic', 'conservation'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-landscape-heritage-overlay`,
   },
 
   // ============================================================================
@@ -897,11 +1275,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Existing stormwater infrastructure (PFTI)',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/City_Plan_2014_LGIP_PFTI_Stormwater_Existing/FeatureServer/0`,
@@ -918,6 +1292,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['stormwater', 'drainage', 'infrastructure', 'lgip', 'existing'],
+    sourceUrl: `${BCC_SPATIAL}/datasets/city-plan-2014-lgip-pfti-stormwater-existing`,
   },
   {
     id: 'brisbane-lgip-stormwater-future',
@@ -926,11 +1301,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Planned future stormwater infrastructure (PFTI)',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/City_Plan_2014_LGIP_PFTI_Stormwater_Future/FeatureServer/0`,
@@ -948,6 +1319,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['stormwater', 'drainage', 'infrastructure', 'lgip', 'future', 'planned'],
+    sourceUrl: `${BCC_SPATIAL}/datasets/city-plan-2014-lgip-pfti-stormwater-future`,
   },
   {
     id: 'brisbane-lgip-transport-existing',
@@ -956,11 +1328,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Existing transport infrastructure (PFTI)',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/City_Plan_2014_LGIP_PFTI_Transport_Existing/FeatureServer/0`,
@@ -977,6 +1345,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['transport', 'roads', 'infrastructure', 'lgip', 'existing'],
+    sourceUrl: `${BCC_SPATIAL}/datasets/city-plan-2014-lgip-pfti-transport-existing`,
   },
   {
     id: 'brisbane-lgip-transport-future',
@@ -985,11 +1354,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Planned future transport infrastructure (PFTI)',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/City_Plan_2014_LGIP_PFTI_Transport_Future/FeatureServer/0`,
@@ -1007,6 +1372,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['transport', 'roads', 'infrastructure', 'lgip', 'future', 'planned'],
+    sourceUrl: `${BCC_SPATIAL}/datasets/city-plan-2014-lgip-pfti-transport-future`,
   },
   {
     id: 'brisbane-lgip-parks-existing',
@@ -1015,11 +1381,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Existing parks and community facilities (PFTI)',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/City_Plan_2014_LGIP_PFTI_Parks_and_Community_Facilities_Existing/FeatureServer/0`,
@@ -1036,6 +1398,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['parks', 'community', 'recreation', 'infrastructure', 'lgip', 'existing'],
+    sourceUrl: `${BCC_SPATIAL}/datasets/city-plan-2014-lgip-pfti-parks-and-community-facilities-existing`,
   },
   {
     id: 'brisbane-lgip-parks-future',
@@ -1044,11 +1407,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Planned future parks and community facilities (PFTI)',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/City_Plan_2014_LGIP_PFTI_Parks_and_Community_Facilities_Future/FeatureServer/0`,
@@ -1066,6 +1425,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['parks', 'community', 'recreation', 'infrastructure', 'lgip', 'future', 'planned'],
+    sourceUrl: `${BCC_SPATIAL}/datasets/city-plan-2014-lgip-pfti-parks-and-community-facilities-future`,
   },
   {
     id: 'brisbane-lgip-service-catchments',
@@ -1074,11 +1434,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Local government infrastructure plan service catchment areas',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/City_Plan_2014_LGIP_Service_Catchments/FeatureServer/0`,
@@ -1095,6 +1451,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['service-catchment', 'infrastructure', 'lgip', 'planning'],
+    sourceUrl: `${BCC_SPATIAL}/datasets/city-plan-2014-lgip-service-catchments`,
   },
   {
     id: 'brisbane-sewer-areas',
@@ -1103,11 +1460,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Detail plan areas for sewer infrastructure',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/detail_plan_areas_sewer/FeatureServer/0`,
@@ -1124,7 +1477,9 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['sewer', 'wastewater', 'infrastructure', 'utilities'],
+    sourceUrl: `${BCC_SPATIAL}/datasets/detail-plan-areas-sewer`,
   },
+  // City Plan 2014 Section 8.2.16 - Regional Infrastructure
   {
     id: 'brisbane-high-voltage-powerlines',
     name: 'High Voltage Powerlines',
@@ -1132,11 +1487,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'High voltage electricity transmission lines',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/Regional_infrastructure_corridors_and_substations_overlay_High_voltage_powerline/FeatureServer/0`,
@@ -1152,6 +1503,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['power', 'electricity', 'high-voltage', 'transmission', 'infrastructure'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-regional-infrastructure-corridors-and-substations-overlay-high-voltage-powerline`,
   },
   {
     id: 'brisbane-high-voltage-easements',
@@ -1160,11 +1512,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Easements for high voltage electricity infrastructure',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/Regional_infrastructure_corridors_and_substations_overlay_High_voltage_easements/FeatureServer/0`,
@@ -1181,6 +1529,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['power', 'electricity', 'easement', 'infrastructure'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-regional-infrastructure-corridors-and-substations-overlay-high-voltage-easements`,
   },
   {
     id: 'brisbane-substations',
@@ -1189,11 +1538,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Electrical substations',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/CP2014_Regional_infrastructure_overlay_High_voltage_substations/FeatureServer/1`,
@@ -1210,6 +1555,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['power', 'electricity', 'substation', 'infrastructure'],
+    sourceUrl: `${BCC_SPATIAL}/datasets/cp2014-regional-infrastructure-overlay-high-voltage-substations`,
   },
   {
     id: 'brisbane-petroleum-pipelines',
@@ -1218,11 +1564,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Major petroleum and gas pipeline corridors',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/Regional_infrastructure_corridors_and_substations_overlay_Petroleum_pipelines/FeatureServer/0`,
@@ -1238,6 +1580,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['petroleum', 'gas', 'pipeline', 'infrastructure'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-regional-infrastructure-corridors-and-substations-overlay-petroleum-pipelines`,
   },
   {
     id: 'brisbane-major-transport-infrastructure',
@@ -1246,11 +1589,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Major transport corridors and infrastructure',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/City_Plan_2014_Regional_infrastructure_corridors_and_substations_overlay_Major_Transport_Infras/FeatureServer/0`,
@@ -1267,6 +1606,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['transport', 'roads', 'rail', 'corridor', 'infrastructure'],
+    sourceUrl: `${BCC_SPATIAL}/datasets/city-plan-2014-regional-infrastructure-corridors-and-substations-overlay-major-transport-infras`,
   },
   {
     id: 'brisbane-critical-infrastructure-assets',
@@ -1275,11 +1615,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Critical infrastructure assets and facilities',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/Critical_infrastructure_and_movement_network_overlay_Assets_infrastructure_and_movement/FeatureServer/0`,
@@ -1296,6 +1632,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['critical', 'assets', 'infrastructure'],
+    sourceUrl: `${BCC_SPATIAL}/datasets/critical-infrastructure-and-movement-network-overlay`,
   },
   {
     id: 'brisbane-critical-infrastructure-routes',
@@ -1304,11 +1641,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Critical movement and infrastructure routes',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/Critical_infrastructure_and_movement_network_overlay_Routes/FeatureServer/0`,
@@ -1324,6 +1657,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['critical', 'routes', 'movement', 'infrastructure'],
+    sourceUrl: `${BCC_SPATIAL}/datasets/critical-infrastructure-and-movement-network-overlay-routes`,
   },
   {
     id: 'brisbane-bicycle-network',
@@ -1332,11 +1666,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Planned and existing bicycle network',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/Bicycle_network_overlay/FeatureServer/0`,
@@ -1352,6 +1682,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['bicycle', 'cycling', 'transport', 'infrastructure'],
+    sourceUrl: `${BCC_OPEN_DATA}/cp14-bicycle-network-overlay`,
   },
   {
     id: 'brisbane-priority-infrastructure-area',
@@ -1360,11 +1691,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'LGIP Priority Infrastructure Area boundaries',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/City_Plan_2014_LGIP_Priority_Infrastructure_Area/FeatureServer/0`,
@@ -1381,6 +1708,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['priority', 'lgip', 'infrastructure', 'planning'],
+    sourceUrl: `${BCC_SPATIAL}/datasets/city-plan-2014-lgip-priority-infrastructure-area`,
   },
 
   // ============================================================================
@@ -1395,11 +1723,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Water pressure mains and trunk mains',
     level: 'council',
     sourceId: 'urban-utilities',
-    coverage: {
-      bounds: [152.0, -27.54, 153.5, -27.0],
-      states: ['QLD'],
-      councils: ['brisbane', 'ipswich', 'lockyer-valley', 'scenic-rim', 'somerset'],
-    },
+    coverage: UU_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${UU_ARCGIS}/UU_Water_OpenData/FeatureServer/21`,
@@ -1418,6 +1742,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['water', 'mains', 'pipes', 'infrastructure', 'urban-utilities'],
+    sourceUrl: 'https://urbanutilities.com.au/about-us/who-we-are/asset-gis-information',
   },
   {
     id: 'uu-water-services',
@@ -1426,11 +1751,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Water service connection points to properties',
     level: 'council',
     sourceId: 'urban-utilities',
-    coverage: {
-      bounds: [152.0, -27.54, 153.5, -27.0],
-      states: ['QLD'],
-      councils: ['brisbane', 'ipswich', 'lockyer-valley', 'scenic-rim', 'somerset'],
-    },
+    coverage: UU_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${UU_ARCGIS}/UU_Water_OpenData/FeatureServer/28`,
@@ -1449,6 +1770,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['water', 'service', 'connection', 'infrastructure', 'urban-utilities'],
+    sourceUrl: 'https://urbanutilities.com.au/about-us/who-we-are/asset-gis-information',
   },
   {
     id: 'uu-water-hydrants',
@@ -1457,11 +1779,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Fire hydrant locations',
     level: 'council',
     sourceId: 'urban-utilities',
-    coverage: {
-      bounds: [152.0, -27.54, 153.5, -27.0],
-      states: ['QLD'],
-      councils: ['brisbane', 'ipswich', 'lockyer-valley', 'scenic-rim', 'somerset'],
-    },
+    coverage: UU_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${UU_ARCGIS}/UU_Water_OpenData/FeatureServer/15`,
@@ -1481,6 +1799,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['water', 'hydrant', 'fire', 'infrastructure', 'urban-utilities'],
+    sourceUrl: 'https://urbanutilities.com.au/about-us/who-we-are/asset-gis-information',
   },
   {
     id: 'uu-water-valves',
@@ -1489,11 +1808,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Water system valves and control valves',
     level: 'council',
     sourceId: 'urban-utilities',
-    coverage: {
-      bounds: [152.0, -27.54, 153.5, -27.0],
-      states: ['QLD'],
-      councils: ['brisbane', 'ipswich', 'lockyer-valley', 'scenic-rim', 'somerset'],
-    },
+    coverage: UU_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${UU_ARCGIS}/UU_Water_OpenData/FeatureServer/33`,
@@ -1513,6 +1828,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['water', 'valve', 'infrastructure', 'urban-utilities'],
+    sourceUrl: 'https://urbanutilities.com.au/about-us/who-we-are/asset-gis-information',
   },
   {
     id: 'uu-water-reservoirs',
@@ -1521,11 +1837,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Water storage reservoirs',
     level: 'council',
     sourceId: 'urban-utilities',
-    coverage: {
-      bounds: [152.0, -27.54, 153.5, -27.0],
-      states: ['QLD'],
-      councils: ['brisbane', 'ipswich', 'lockyer-valley', 'scenic-rim', 'somerset'],
-    },
+    coverage: UU_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${UU_ARCGIS}/UU_Water_OpenData/FeatureServer/25`,
@@ -1545,6 +1857,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['water', 'reservoir', 'storage', 'infrastructure', 'urban-utilities'],
+    sourceUrl: 'https://urbanutilities.com.au/about-us/who-we-are/asset-gis-information',
   },
   {
     id: 'uu-water-pump-stations',
@@ -1553,11 +1866,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Water pump station locations',
     level: 'council',
     sourceId: 'urban-utilities',
-    coverage: {
-      bounds: [152.0, -27.54, 153.5, -27.0],
-      states: ['QLD'],
-      councils: ['brisbane', 'ipswich', 'lockyer-valley', 'scenic-rim', 'somerset'],
-    },
+    coverage: UU_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${UU_ARCGIS}/UU_Water_OpenData/FeatureServer/24`,
@@ -1577,6 +1886,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['water', 'pump', 'station', 'infrastructure', 'urban-utilities'],
+    sourceUrl: 'https://urbanutilities.com.au/about-us/who-we-are/asset-gis-information',
   },
 
   // ============================================================================
@@ -1589,11 +1899,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Gravity sewer mains (main sewer pipes)',
     level: 'council',
     sourceId: 'urban-utilities',
-    coverage: {
-      bounds: [152.0, -27.54, 153.5, -27.0],
-      states: ['QLD'],
-      councils: ['brisbane', 'ipswich', 'lockyer-valley', 'scenic-rim', 'somerset'],
-    },
+    coverage: UU_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${UU_ARCGIS}/UU_Sewer_OpenData/FeatureServer/18`,
@@ -1612,6 +1918,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['sewer', 'gravity', 'mains', 'pipes', 'infrastructure', 'urban-utilities'],
+    sourceUrl: 'https://urbanutilities.com.au/about-us/who-we-are/asset-gis-information',
   },
   {
     id: 'uu-sewer-pressure-mains',
@@ -1620,11 +1927,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Pressurized sewer mains (rising mains)',
     level: 'council',
     sourceId: 'urban-utilities',
-    coverage: {
-      bounds: [152.0, -27.54, 153.5, -27.0],
-      states: ['QLD'],
-      councils: ['brisbane', 'ipswich', 'lockyer-valley', 'scenic-rim', 'somerset'],
-    },
+    coverage: UU_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${UU_ARCGIS}/UU_Sewer_OpenData/FeatureServer/25`,
@@ -1643,6 +1946,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['sewer', 'pressure', 'rising', 'mains', 'infrastructure', 'urban-utilities'],
+    sourceUrl: 'https://urbanutilities.com.au/about-us/who-we-are/asset-gis-information',
   },
   {
     id: 'uu-sewer-services',
@@ -1651,11 +1955,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Sewer service connection points to properties',
     level: 'council',
     sourceId: 'urban-utilities',
-    coverage: {
-      bounds: [152.0, -27.54, 153.5, -27.0],
-      states: ['QLD'],
-      councils: ['brisbane', 'ipswich', 'lockyer-valley', 'scenic-rim', 'somerset'],
-    },
+    coverage: UU_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${UU_ARCGIS}/UU_Sewer_OpenData/FeatureServer/30`,
@@ -1674,6 +1974,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['sewer', 'service', 'connection', 'infrastructure', 'urban-utilities'],
+    sourceUrl: 'https://urbanutilities.com.au/about-us/who-we-are/asset-gis-information',
   },
   {
     id: 'uu-sewer-manholes',
@@ -1682,11 +1983,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Sewer manhole/maintenance hole locations',
     level: 'council',
     sourceId: 'urban-utilities',
-    coverage: {
-      bounds: [152.0, -27.54, 153.5, -27.0],
-      states: ['QLD'],
-      councils: ['brisbane', 'ipswich', 'lockyer-valley', 'scenic-rim', 'somerset'],
-    },
+    coverage: UU_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${UU_ARCGIS}/UU_Sewer_OpenData/FeatureServer/20`,
@@ -1706,6 +2003,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['sewer', 'manhole', 'maintenance', 'infrastructure', 'urban-utilities'],
+    sourceUrl: 'https://urbanutilities.com.au/about-us/who-we-are/asset-gis-information',
   },
   {
     id: 'uu-sewer-pump-stations',
@@ -1714,11 +2012,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Sewage pump station locations',
     level: 'council',
     sourceId: 'urban-utilities',
-    coverage: {
-      bounds: [152.0, -27.54, 153.5, -27.0],
-      states: ['QLD'],
-      councils: ['brisbane', 'ipswich', 'lockyer-valley', 'scenic-rim', 'somerset'],
-    },
+    coverage: UU_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${UU_ARCGIS}/UU_Sewer_OpenData/FeatureServer/27`,
@@ -1738,6 +2032,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['sewer', 'pump', 'station', 'infrastructure', 'urban-utilities'],
+    sourceUrl: 'https://urbanutilities.com.au/about-us/who-we-are/asset-gis-information',
   },
   {
     id: 'uu-sewer-vents',
@@ -1746,11 +2041,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: 'Sewer vent locations',
     level: 'council',
     sourceId: 'urban-utilities',
-    coverage: {
-      bounds: [152.0, -27.54, 153.5, -27.0],
-      states: ['QLD'],
-      councils: ['brisbane', 'ipswich', 'lockyer-valley', 'scenic-rim', 'somerset'],
-    },
+    coverage: UU_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${UU_ARCGIS}/UU_Sewer_OpenData/FeatureServer/34`,
@@ -1770,7 +2061,9 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['sewer', 'vent', 'infrastructure', 'urban-utilities'],
+    sourceUrl: 'https://urbanutilities.com.au/about-us/who-we-are/asset-gis-information',
   },
+
   // ============================================================================
   // TOPOGRAPHY
   // ============================================================================
@@ -1781,11 +2074,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: '1 metre contour lines for detailed slope analysis',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/Contours_1_metre/FeatureServer/0`,
@@ -1801,6 +2090,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['contours', 'topography', 'slope', 'elevation'],
+    sourceUrl: `${BCC_SPATIAL}/datasets/contours-1-metre`,
   },
   {
     id: 'brisbane-contours-5m',
@@ -1809,11 +2099,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     description: '5 metre contour lines for general slope assessment',
     level: 'council',
     sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
+    coverage: BCC_COVERAGE,
     service: {
       type: 'arcgis-feature',
       url: `${BCC_ARCGIS}/Contours_5_metre/FeatureServer/0`,
@@ -1829,97 +2115,7 @@ export const BRISBANE_COUNCIL_LAYERS: OverlayLayer[] = [
     },
     quality: 'authoritative',
     tags: ['contours', 'topography', 'slope', 'elevation'],
-  },
-
-  // ============================================================================
-  // ADDITIONAL PLANNING
-  // ============================================================================
-  {
-    id: 'brisbane-acid-sulfate-soils',
-    name: 'Acid Sulfate Soils',
-    category: 'environment',
-    description: 'Acid sulfate soil areas requiring management during construction',
-    level: 'council',
-    sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
-    service: {
-      type: 'arcgis-feature',
-      url: `${BCC_ARCGIS}/Acid_sulfate_soils_overlay/FeatureServer/0`,
-      format: 'geojson',
-      requiresProxy: false,
-    },
-    style: {
-      opacity: 0.5,
-      minZoom: 10,
-      maxZoom: 22,
-      fillColor: '#facc15',
-      strokeColor: '#ca8a04',
-      strokeWidth: 1,
-    },
-    quality: 'authoritative',
-    tags: ['acid-sulfate', 'soils', 'construction', 'environment'],
-  },
-  {
-    id: 'brisbane-dwelling-house',
-    name: 'Dwelling House Overlay',
-    category: 'planning',
-    description: 'Areas with dwelling house character requirements',
-    level: 'council',
-    sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
-    service: {
-      type: 'arcgis-feature',
-      url: `${BCC_ARCGIS}/Dwelling_house_overlay/FeatureServer/0`,
-      format: 'geojson',
-      requiresProxy: false,
-    },
-    style: {
-      opacity: 0.4,
-      minZoom: 12,
-      maxZoom: 22,
-      fillColor: '#fef3c7',
-      strokeColor: '#d97706',
-      strokeWidth: 1,
-    },
-    quality: 'authoritative',
-    tags: ['dwelling', 'residential', 'character', 'planning'],
-  },
-  {
-    id: 'brisbane-short-term-accommodation',
-    name: 'Short Term Accommodation',
-    category: 'planning',
-    description: 'Areas where short term accommodation is restricted',
-    level: 'council',
-    sourceId: 'brisbane-council',
-    coverage: {
-      bounds: [152.66, -27.54, 153.32, -27.05],
-      states: ['QLD'],
-      councils: ['brisbane'],
-    },
-    service: {
-      type: 'arcgis-feature',
-      url: `${BCC_ARCGIS}/Short_term_accommodation_overlay/FeatureServer/0`,
-      format: 'geojson',
-      requiresProxy: false,
-    },
-    style: {
-      opacity: 0.4,
-      minZoom: 12,
-      maxZoom: 22,
-      fillColor: '#fda4af',
-      strokeColor: '#e11d48',
-      strokeWidth: 1,
-    },
-    quality: 'authoritative',
-    tags: ['airbnb', 'short-term', 'accommodation', 'planning'],
+    sourceUrl: `${BCC_SPATIAL}/datasets/contours-5-metre`,
   },
 ];
 

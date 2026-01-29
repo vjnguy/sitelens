@@ -271,6 +271,9 @@ export interface OverlayLayer {
   /** Tags for search/filtering */
   tags?: string[];
 
+  /** Direct URL to the specific data source page for this layer */
+  sourceUrl?: string;
+
   /** Is this layer enabled by default? */
   defaultEnabled?: boolean;
 

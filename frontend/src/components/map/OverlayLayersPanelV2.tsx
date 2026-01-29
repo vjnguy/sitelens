@@ -61,10 +61,19 @@ import {
 } from '@/lib/overlays';
 import { LegendLayer } from './MapLegend';
 
+export interface OverlaySettings {
+  activeLayers: string[];
+  layerOpacity: Record<string, number>;
+}
+
 interface OverlayLayersPanelV2Props {
   map: mapboxgl.Map | null;
   className?: string;
   onActiveLegendLayersChange?: (layers: LegendLayer[]) => void;
+  /** Initial overlay settings from project (overrides localStorage) */
+  initialSettings?: OverlaySettings;
+  /** Callback when overlay settings change (for project persistence) */
+  onSettingsChange?: (settings: OverlaySettings) => void;
 }
 
 // Icons for categories
@@ -186,6 +195,8 @@ export function OverlayLayersPanelV2({
   map,
   className,
   onActiveLegendLayersChange,
+  initialSettings,
+  onSettingsChange,
 }: OverlayLayersPanelV2Props) {
   // State
   const [activeLayers, setActiveLayers] = useState<Set<string>>(new Set());
@@ -203,16 +214,19 @@ export function OverlayLayersPanelV2({
   const hasRestoredState = useRef(false);
   const isRestoringLayers = useRef(false);
 
-  // Initialize opacity values (with persisted values if available)
+  // Initialize opacity values (prefer project settings > localStorage > defaults)
   useEffect(() => {
     const persistedState = loadPersistedLayerState();
     const initialOpacity: Record<string, number> = {};
     ALL_LAYERS.forEach((layer) => {
-      // Use persisted opacity if available, otherwise use default
-      initialOpacity[layer.id] = persistedState?.layerOpacity[layer.id] ?? layer.style.opacity;
+      // Priority: initialSettings (from project) > persisted (localStorage) > default
+      initialOpacity[layer.id] =
+        initialSettings?.layerOpacity?.[layer.id] ??
+        persistedState?.layerOpacity[layer.id] ??
+        layer.style.opacity;
     });
     setLayerOpacity(initialOpacity);
-  }, []);
+  }, [initialSettings]);
 
   // Restore persisted layers or enable default layers when map becomes available
   useEffect(() => {
@@ -221,10 +235,18 @@ export function OverlayLayersPanelV2({
     const persistedState = loadPersistedLayerState();
 
     // Determine which layers to restore/enable
+    // Priority: initialSettings (from project) > persisted (localStorage) > defaults
     const layersToEnable: OverlayLayer[] = [];
 
-    if (persistedState && persistedState.activeLayers.length > 0) {
-      // Use persisted layers
+    if (initialSettings && initialSettings.activeLayers.length > 0) {
+      // Use project settings
+      layersToEnable.push(
+        ...initialSettings.activeLayers
+          .map(id => ALL_LAYERS.find(l => l.id === id))
+          .filter((l): l is OverlayLayer => l !== undefined)
+      );
+    } else if (persistedState && persistedState.activeLayers.length > 0) {
+      // Use localStorage persisted layers
       layersToEnable.push(
         ...persistedState.activeLayers
           .map(id => ALL_LAYERS.find(l => l.id === id))
@@ -284,11 +306,20 @@ export function OverlayLayersPanelV2({
     if (!hasRestoredState.current) return;
 
     const timeoutId = setTimeout(() => {
+      // Save to localStorage (fallback)
       saveLayerState(activeLayers, layerOpacity);
+
+      // Notify parent for project persistence
+      if (onSettingsChange) {
+        onSettingsChange({
+          activeLayers: Array.from(activeLayers),
+          layerOpacity,
+        });
+      }
     }, 500); // Debounce saves
 
     return () => clearTimeout(timeoutId);
-  }, [activeLayers, layerOpacity]);
+  }, [activeLayers, layerOpacity, onSettingsChange]);
 
   // Ref to track active layers (avoid stale closures in event handlers)
   const activeLayersRef = useRef<Set<string>>(activeLayers);
@@ -701,9 +732,9 @@ export function OverlayLayersPanelV2({
                       <Shield className="h-3 w-3 flex-shrink-0" />
                       <span>{source.license}</span>
                     </div>
-                    {source.portalUrl && (
+                    {(layer.sourceUrl || source.portalUrl) && (
                       <a
-                        href={source.portalUrl}
+                        href={layer.sourceUrl || source.portalUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-1.5 text-[10px] text-primary hover:underline"

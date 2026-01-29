@@ -19,6 +19,8 @@ import {
   ChevronDown,
   Layers,
   Scale,
+  FolderOpen,
+  MessageSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -30,6 +32,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { parseLotPlan } from '@/lib/api/property-search';
 import { createClient } from '@/lib/supabase/client';
+import { FeedbackDialog } from '@/components/app/FeedbackDialog';
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
@@ -62,6 +65,7 @@ export function AppHeader({
   const [searchResults, setSearchResults] = useState<GeocodingResult[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
@@ -237,6 +241,14 @@ export function AppHeader({
 
       {/* Quick Actions - pushed to right */}
       <div className="flex items-center gap-2 ml-auto">
+        {/* Projects */}
+        <Link href="/projects">
+          <Button variant="ghost" size="sm" className="gap-2">
+            <FolderOpen className="h-4 w-4" />
+            <span className="hidden md:inline">Projects</span>
+          </Button>
+        </Link>
+
         {/* Saved Sites */}
         <Link href="/saved">
           <Button variant="ghost" size="sm" className="gap-2">
@@ -276,10 +288,21 @@ export function AppHeader({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem asChild>
+                <Link href="/projects" className="flex items-center gap-2">
+                  <FolderOpen className="h-4 w-4" />
+                  Projects
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
                 <Link href="/settings" className="flex items-center gap-2">
                   <Settings className="h-4 w-4" />
                   Settings
                 </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setFeedbackOpen(true)}>
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Send Feedback
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
@@ -297,6 +320,8 @@ export function AppHeader({
           </Button>
         )}
       </div>
+
+      <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
     </header>
   );
 }
