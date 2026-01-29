@@ -31,9 +31,32 @@ export async function GET(request: NextRequest) {
   // Decode the base URL (it was encoded when constructing the proxy URL)
   const base = decodeURIComponent(baseEncoded);
 
-  // Construct the full URL
-  const url = `${base}&bbox=${bbox}`;
-  console.log('[Tile Proxy] Fetching URL:', url.substring(0, 100) + '...');
+  // Build the final URL by appending bbox
+  // The base URL already has properly formatted query parameters
+  // We just need to encode special characters that are required for HTTP
+  const [baseUrlPath, queryString] = base.split('?');
+
+  // Manually encode each parameter value while preserving the structure
+  // This avoids double-encoding issues with URLSearchParams
+  const encodedParams: string[] = [];
+
+  if (queryString) {
+    queryString.split('&').forEach(param => {
+      const eqIndex = param.indexOf('=');
+      if (eqIndex === -1) {
+        encodedParams.push(param);
+        return;
+      }
+      const key = param.substring(0, eqIndex);
+      const value = param.substring(eqIndex + 1);
+      // Encode the value for safe HTTP transmission
+      encodedParams.push(`${key}=${encodeURIComponent(value)}`);
+    });
+  }
+  encodedParams.push(`bbox=${encodeURIComponent(bbox)}`);
+
+  const url = `${baseUrlPath}?${encodedParams.join('&')}`;
+  console.log('[Tile Proxy] Fetching URL:', url.substring(0, 200) + '...');
 
   // Only allow requests to trusted spatial data servers
   const allowedHosts = [

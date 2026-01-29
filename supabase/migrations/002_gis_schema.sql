@@ -121,24 +121,28 @@ ALTER TABLE property_searches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE spatial_bookmarks ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for projects
+DROP POLICY IF EXISTS "Users can view projects in their organization" ON projects;
 CREATE POLICY "Users can view projects in their organization"
   ON projects FOR SELECT
   USING (organization_id IN (
     SELECT organization_id FROM profiles WHERE id = auth.uid()
   ));
 
+DROP POLICY IF EXISTS "Users can create projects in their organization" ON projects;
 CREATE POLICY "Users can create projects in their organization"
   ON projects FOR INSERT
   WITH CHECK (organization_id IN (
     SELECT organization_id FROM profiles WHERE id = auth.uid()
   ));
 
+DROP POLICY IF EXISTS "Users can update projects in their organization" ON projects;
 CREATE POLICY "Users can update projects in their organization"
   ON projects FOR UPDATE
   USING (organization_id IN (
     SELECT organization_id FROM profiles WHERE id = auth.uid()
   ));
 
+DROP POLICY IF EXISTS "Users can delete projects in their organization" ON projects;
 CREATE POLICY "Users can delete projects in their organization"
   ON projects FOR DELETE
   USING (organization_id IN (
@@ -146,6 +150,7 @@ CREATE POLICY "Users can delete projects in their organization"
   ));
 
 -- RLS Policies for layers (through project ownership)
+DROP POLICY IF EXISTS "Users can view layers in their projects" ON layers;
 CREATE POLICY "Users can view layers in their projects"
   ON layers FOR SELECT
   USING (project_id IN (
@@ -154,6 +159,7 @@ CREATE POLICY "Users can view layers in their projects"
     )
   ));
 
+DROP POLICY IF EXISTS "Users can manage layers in their projects" ON layers;
 CREATE POLICY "Users can manage layers in their projects"
   ON layers FOR ALL
   USING (project_id IN (
@@ -163,12 +169,14 @@ CREATE POLICY "Users can manage layers in their projects"
   ));
 
 -- RLS Policies for datasets
+DROP POLICY IF EXISTS "Users can view datasets in their organization" ON datasets;
 CREATE POLICY "Users can view datasets in their organization"
   ON datasets FOR SELECT
   USING (organization_id IN (
     SELECT organization_id FROM profiles WHERE id = auth.uid()
   ));
 
+DROP POLICY IF EXISTS "Users can manage datasets in their organization" ON datasets;
 CREATE POLICY "Users can manage datasets in their organization"
   ON datasets FOR ALL
   USING (organization_id IN (
@@ -176,12 +184,14 @@ CREATE POLICY "Users can manage datasets in their organization"
   ));
 
 -- RLS Policies for data_sources
+DROP POLICY IF EXISTS "Users can view data sources in their organization" ON data_sources;
 CREATE POLICY "Users can view data sources in their organization"
   ON data_sources FOR SELECT
   USING (organization_id IN (
     SELECT organization_id FROM profiles WHERE id = auth.uid()
   ));
 
+DROP POLICY IF EXISTS "Users can manage data sources in their organization" ON data_sources;
 CREATE POLICY "Users can manage data sources in their organization"
   ON data_sources FOR ALL
   USING (organization_id IN (
@@ -189,6 +199,7 @@ CREATE POLICY "Users can manage data sources in their organization"
   ));
 
 -- RLS Policies for analysis_scripts
+DROP POLICY IF EXISTS "Users can view scripts in their projects" ON analysis_scripts;
 CREATE POLICY "Users can view scripts in their projects"
   ON analysis_scripts FOR SELECT
   USING (project_id IN (
@@ -197,6 +208,7 @@ CREATE POLICY "Users can view scripts in their projects"
     )
   ));
 
+DROP POLICY IF EXISTS "Users can manage scripts in their projects" ON analysis_scripts;
 CREATE POLICY "Users can manage scripts in their projects"
   ON analysis_scripts FOR ALL
   USING (project_id IN (
@@ -206,21 +218,25 @@ CREATE POLICY "Users can manage scripts in their projects"
   ));
 
 -- RLS Policies for ai_conversations
+DROP POLICY IF EXISTS "Users can view their own AI conversations" ON ai_conversations;
 CREATE POLICY "Users can view their own AI conversations"
   ON ai_conversations FOR SELECT
   USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Users can manage their own AI conversations" ON ai_conversations;
 CREATE POLICY "Users can manage their own AI conversations"
   ON ai_conversations FOR ALL
   USING (user_id = auth.uid());
 
 -- RLS Policies for property_searches
+DROP POLICY IF EXISTS "Users can view property searches in their organization" ON property_searches;
 CREATE POLICY "Users can view property searches in their organization"
   ON property_searches FOR SELECT
   USING (organization_id IN (
     SELECT organization_id FROM profiles WHERE id = auth.uid()
   ));
 
+DROP POLICY IF EXISTS "Users can create property searches" ON property_searches;
 CREATE POLICY "Users can create property searches"
   ON property_searches FOR INSERT
   WITH CHECK (organization_id IN (
@@ -228,6 +244,7 @@ CREATE POLICY "Users can create property searches"
   ));
 
 -- RLS Policies for spatial_bookmarks
+DROP POLICY IF EXISTS "Users can view bookmarks in their projects" ON spatial_bookmarks;
 CREATE POLICY "Users can view bookmarks in their projects"
   ON spatial_bookmarks FOR SELECT
   USING (project_id IN (
@@ -236,6 +253,7 @@ CREATE POLICY "Users can view bookmarks in their projects"
     )
   ));
 
+DROP POLICY IF EXISTS "Users can manage their own bookmarks" ON spatial_bookmarks;
 CREATE POLICY "Users can manage their own bookmarks"
   ON spatial_bookmarks FOR ALL
   USING (user_id = auth.uid());
@@ -263,26 +281,32 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Apply updated_at triggers
+DROP TRIGGER IF EXISTS update_projects_updated_at ON projects;
 CREATE TRIGGER update_projects_updated_at
   BEFORE UPDATE ON projects
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_layers_updated_at ON layers;
 CREATE TRIGGER update_layers_updated_at
   BEFORE UPDATE ON layers
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_datasets_updated_at ON datasets;
 CREATE TRIGGER update_datasets_updated_at
   BEFORE UPDATE ON datasets
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_data_sources_updated_at ON data_sources;
 CREATE TRIGGER update_data_sources_updated_at
   BEFORE UPDATE ON data_sources
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_analysis_scripts_updated_at ON analysis_scripts;
 CREATE TRIGGER update_analysis_scripts_updated_at
   BEFORE UPDATE ON analysis_scripts
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_ai_conversations_updated_at ON ai_conversations;
 CREATE TRIGGER update_ai_conversations_updated_at
   BEFORE UPDATE ON ai_conversations
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -293,6 +317,7 @@ VALUES ('gis-files', 'gis-files', false)
 ON CONFLICT (id) DO NOTHING;
 
 -- Storage policies for GIS files
+DROP POLICY IF EXISTS "Users can upload GIS files to their organization" ON storage.objects;
 CREATE POLICY "Users can upload GIS files to their organization"
   ON storage.objects FOR INSERT
   WITH CHECK (
@@ -302,6 +327,7 @@ CREATE POLICY "Users can upload GIS files to their organization"
     )
   );
 
+DROP POLICY IF EXISTS "Users can view GIS files in their organization" ON storage.objects;
 CREATE POLICY "Users can view GIS files in their organization"
   ON storage.objects FOR SELECT
   USING (
@@ -311,6 +337,7 @@ CREATE POLICY "Users can view GIS files in their organization"
     )
   );
 
+DROP POLICY IF EXISTS "Users can delete GIS files in their organization" ON storage.objects;
 CREATE POLICY "Users can delete GIS files in their organization"
   ON storage.objects FOR DELETE
   USING (

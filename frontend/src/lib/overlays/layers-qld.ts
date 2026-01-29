@@ -231,11 +231,10 @@ export const QLD_STATE_LAYERS: OverlayLayer[] = [
     service: {
       type: 'arcgis-dynamic',
       url: `${QLD_GIS_BASE}/PlanningCadastre/LandParcelPropertyFramework/MapServer`,
-      layers: [4],
       format: 'png32',
       tileSize: 512,
       requiresProxy: true,
-      // Custom symbology: black outlines, no fill
+      // Custom symbology: black outlines, no fill (using dynamicLayers instead of layers)
       dynamicLayers: JSON.stringify([{
         id: 4,
         source: { type: 'mapLayer', mapLayerId: 4 },
@@ -249,7 +248,7 @@ export const QLD_STATE_LAYERS: OverlayLayer[] = [
                 type: 'esriSLS',
                 style: 'esriSLSSolid',
                 color: [0, 0, 0, 255],
-                width: 1
+                width: 0.5
               }
             }
           }

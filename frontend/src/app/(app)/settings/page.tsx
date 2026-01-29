@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 import {
   ArrowLeft,
   Settings,
@@ -15,16 +16,71 @@ import {
   Palette,
   Shield,
   HelpCircle,
+  CreditCard,
+  Crown,
+  Check,
+  Loader2,
+  FolderOpen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type SettingsSection = 'profile' | 'notifications' | 'map' | 'appearance' | 'privacy';
+type SettingsSection = 'profile' | 'subscription' | 'notifications' | 'map' | 'appearance' | 'privacy';
+
+interface SubscriptionInfo {
+  tier: string;
+  projectLimit: number;
+  projectCount: number;
+}
+
+const TIER_FEATURES: Record<string, { name: string; price: string; features: string[]; highlighted?: boolean }> = {
+  free: {
+    name: 'Free',
+    price: '$0',
+    features: ['3 projects', 'Basic overlays', 'File imports', 'Community support'],
+  },
+  pro: {
+    name: 'Pro',
+    price: '$29/mo',
+    features: ['25 projects', 'All overlays', 'Priority support', 'API access', 'Team sharing'],
+    highlighted: true,
+  },
+  enterprise: {
+    name: 'Enterprise',
+    price: 'Custom',
+    features: ['Unlimited projects', 'Custom integrations', 'Dedicated support', 'SLA guarantee', 'SSO/SAML'],
+  },
+};
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState<SettingsSection>('profile');
+  const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
+  const [isLoadingSubscription, setIsLoadingSubscription] = useState(true);
+
+  // Load subscription info
+  useEffect(() => {
+    async function loadSubscription() {
+      try {
+        const response = await fetch('/api/projects');
+        if (response.ok) {
+          const data = await response.json();
+          setSubscription({
+            tier: data.tier || 'free',
+            projectLimit: data.projectLimit || 3,
+            projectCount: data.projects?.length || 0,
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load subscription info:', err);
+      } finally {
+        setIsLoadingSubscription(false);
+      }
+    }
+    loadSubscription();
+  }, []);
 
   const sections = [
     { id: 'profile' as const, label: 'Profile', icon: User },
+    { id: 'subscription' as const, label: 'Subscription', icon: CreditCard },
     { id: 'notifications' as const, label: 'Notifications', icon: Bell },
     { id: 'map' as const, label: 'Map Preferences', icon: Map },
     { id: 'appearance' as const, label: 'Appearance', icon: Palette },
@@ -102,6 +158,116 @@ export default function SettingsPage() {
                 </div>
 
                 <Button>Save Changes</Button>
+              </div>
+            )}
+
+            {activeSection === 'subscription' && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-lg font-semibold mb-1">Subscription</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Manage your plan and billing
+                  </p>
+                </div>
+
+                {isLoadingSubscription ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : subscription ? (
+                  <>
+                    {/* Current Plan */}
+                    <div className="p-4 bg-muted/50 rounded-lg">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Crown className={cn(
+                            "h-5 w-5",
+                            subscription.tier === 'free' ? "text-slate-500" :
+                            subscription.tier === 'pro' ? "text-blue-500" : "text-purple-500"
+                          )} />
+                          <span className="font-semibold capitalize">{subscription.tier} Plan</span>
+                        </div>
+                        <Badge variant={subscription.tier === 'free' ? 'secondary' : 'default'}>
+                          Current
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <FolderOpen className="h-4 w-4" />
+                        <span>
+                          {subscription.projectCount} of {subscription.projectLimit === -1 ? '∞' : subscription.projectLimit} projects used
+                        </span>
+                      </div>
+                      {subscription.projectLimit !== -1 && (
+                        <div className="mt-2 w-full h-2 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className={cn(
+                              "h-full transition-all",
+                              subscription.projectCount >= subscription.projectLimit ? "bg-destructive" : "bg-primary"
+                            )}
+                            style={{ width: `${Math.min(100, (subscription.projectCount / subscription.projectLimit) * 100)}%` }}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Available Plans */}
+                    <div>
+                      <h3 className="font-medium mb-3">Available Plans</h3>
+                      <div className="grid gap-4">
+                        {Object.entries(TIER_FEATURES).map(([tierId, plan]) => (
+                          <div
+                            key={tierId}
+                            className={cn(
+                              "p-4 rounded-lg border-2 transition-colors",
+                              subscription.tier === tierId
+                                ? "border-primary bg-primary/5"
+                                : plan.highlighted
+                                ? "border-blue-200 bg-blue-50/50"
+                                : "border-border"
+                            )}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold">{plan.name}</span>
+                                {plan.highlighted && subscription.tier !== tierId && (
+                                  <Badge variant="secondary" className="text-xs">Popular</Badge>
+                                )}
+                              </div>
+                              <span className="font-bold">{plan.price}</span>
+                            </div>
+                            <ul className="space-y-1.5 mb-3">
+                              {plan.features.map((feature, i) => (
+                                <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <Check className="h-3.5 w-3.5 text-green-500" />
+                                  {feature}
+                                </li>
+                              ))}
+                            </ul>
+                            {subscription.tier === tierId ? (
+                              <Button variant="outline" size="sm" disabled className="w-full">
+                                Current Plan
+                              </Button>
+                            ) : tierId === 'enterprise' ? (
+                              <Button variant="outline" size="sm" className="w-full">
+                                Contact Sales
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                className="w-full"
+                                variant={plan.highlighted ? 'default' : 'outline'}
+                              >
+                                {tierId === 'free' ? 'Downgrade' : 'Upgrade'}
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Unable to load subscription information.</p>
+                )}
               </div>
             )}
 

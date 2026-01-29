@@ -295,8 +295,46 @@ export const MapViewer = forwardRef<MapViewerRef, MapViewerProps>(({
 
     layers.forEach((layer) => {
       try {
-        const existingSource = map.getSource(layer.id) as mapboxgl.GeoJSONSource | undefined;
+        const existingSource = map.getSource(layer.id);
 
+        // Handle raster/image layers
+        if (layer.type === 'raster' && layer.source_config.imageUrl && layer.source_config.imageCoordinates) {
+          if (!existingSource) {
+            map.addSource(layer.id, {
+              type: 'image',
+              url: layer.source_config.imageUrl,
+              coordinates: layer.source_config.imageCoordinates,
+            });
+          } else {
+            (existingSource as mapboxgl.ImageSource).updateImage({
+              url: layer.source_config.imageUrl,
+              coordinates: layer.source_config.imageCoordinates,
+            });
+          }
+
+          if (!map.getLayer(layer.id) && map.getSource(layer.id)) {
+            map.addLayer({
+              id: layer.id,
+              source: layer.id,
+              type: 'raster',
+              paint: layer.style.paint || { 'raster-opacity': 0.85 },
+              layout: { visibility: layer.visible ? 'visible' : 'none' },
+            });
+            layersAddedRef.current.add(layer.id);
+          } else if (map.getLayer(layer.id)) {
+            map.setLayoutProperty(layer.id, 'visibility', layer.visible ? 'visible' : 'none');
+            if (layer.style.paint) {
+              Object.entries(layer.style.paint).forEach(([prop, value]) => {
+                try {
+                  map.setPaintProperty(layer.id, prop as any, value);
+                } catch { /* ignore */ }
+              });
+            }
+          }
+          return; // Skip vector handling
+        }
+
+        // Handle vector/geojson layers
         if (layer.source_type === 'geojson' && layer.source_config.data) {
           if (!existingSource) {
             // Add new source
@@ -306,7 +344,7 @@ export const MapViewer = forwardRef<MapViewerRef, MapViewerProps>(({
             });
           } else {
             // Update existing source with new data
-            existingSource.setData(layer.source_config.data);
+            (existingSource as mapboxgl.GeoJSONSource).setData(layer.source_config.data);
           }
         }
 

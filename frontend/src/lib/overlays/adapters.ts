@@ -133,7 +133,8 @@ export function getArcGISDynamicTileUrl(
 
   // Add dynamic layers for custom symbology if defined (takes precedence over layers)
   if (config.dynamicLayers) {
-    queryParts.push(`dynamicLayers=${encodeURIComponent(config.dynamicLayers)}`);
+    // Note: dynamicLayers will be encoded when the full URL is encoded for the proxy
+    queryParts.push(`dynamicLayers=${config.dynamicLayers}`);
   } else if (config.layers && config.layers.length > 0) {
     // Only add layers parameter if dynamicLayers is not defined
     queryParts.push(`layers=show:${config.layers.join(',')}`);
@@ -924,5 +925,107 @@ export function getLayerPreviewUrl(
 
     default:
       return '';
+  }
+}
+
+// ============================================================================
+// IDENTIFY / QUERY AT POINT
+// ============================================================================
+
+export interface IdentifyResult {
+  layerId: number;
+  layerName: string;
+  displayFieldName?: string;
+  value?: string;
+  attributes: Record<string, unknown>;
+  geometryType?: string;
+}
+
+/**
+ * Query ArcGIS MapServer at a point to identify features
+ * Used for raster layers (arcgis-dynamic, arcgis-cached) that don't support client-side queries
+ *
+ * @param baseUrl - The MapServer base URL (without /export)
+ * @param lngLat - Click coordinates [longitude, latitude]
+ * @param mapExtent - Current map extent [minLng, minLat, maxLng, maxLat]
+ * @param mapSize - Map container size [width, height]
+ * @param layers - Optional layer IDs to query (defaults to all visible)
+ * @param tolerance - Pixel tolerance for the identify (default 3)
+ */
+export async function identifyArcGISFeatures(
+  baseUrl: string,
+  lngLat: [number, number],
+  mapExtent: [number, number, number, number],
+  mapSize: [number, number],
+  layers?: number[],
+  tolerance: number = 3
+): Promise<IdentifyResult[]> {
+  // Convert coordinates from WGS84 to Web Mercator for the identify request
+  const [lng, lat] = lngLat;
+  const x = lng * 20037508.34 / 180;
+  const y = Math.log(Math.tan((90 + lat) * Math.PI / 360)) / (Math.PI / 180) * 20037508.34 / 180;
+
+  // Convert map extent to Web Mercator
+  const [minLng, minLat, maxLng, maxLat] = mapExtent;
+  const mapExtent3857 = [
+    minLng * 20037508.34 / 180,
+    Math.log(Math.tan((90 + minLat) * Math.PI / 360)) / (Math.PI / 180) * 20037508.34 / 180,
+    maxLng * 20037508.34 / 180,
+    Math.log(Math.tan((90 + maxLat) * Math.PI / 360)) / (Math.PI / 180) * 20037508.34 / 180,
+  ];
+
+  const params = new URLSearchParams({
+    f: 'json',
+    geometry: JSON.stringify({ x, y, spatialReference: { wkid: 3857 } }),
+    geometryType: 'esriGeometryPoint',
+    sr: '3857',
+    mapExtent: mapExtent3857.join(','),
+    imageDisplay: `${mapSize[0]},${mapSize[1]},96`,
+    tolerance: tolerance.toString(),
+    returnGeometry: 'false',
+    returnFieldName: 'true',
+    returnUnformattedValues: 'false',
+  });
+
+  // Specify layers to query
+  if (layers && layers.length > 0) {
+    params.set('layers', `all:${layers.join(',')}`);
+  } else {
+    params.set('layers', 'visible');
+  }
+
+  const identifyUrl = `${baseUrl}/identify?${params.toString()}`;
+
+  try {
+    const response = await fetch(identifyUrl);
+    if (!response.ok) {
+      console.error('[Overlay] Identify request failed:', response.status);
+      return [];
+    }
+
+    const data = await response.json();
+
+    if (!data.results || !Array.isArray(data.results)) {
+      return [];
+    }
+
+    return data.results.map((result: {
+      layerId: number;
+      layerName: string;
+      displayFieldName?: string;
+      value?: string;
+      attributes: Record<string, unknown>;
+      geometryType?: string;
+    }) => ({
+      layerId: result.layerId,
+      layerName: result.layerName,
+      displayFieldName: result.displayFieldName,
+      value: result.value,
+      attributes: result.attributes || {},
+      geometryType: result.geometryType,
+    }));
+  } catch (error) {
+    console.error('[Overlay] Error in identify request:', error);
+    return [];
   }
 }

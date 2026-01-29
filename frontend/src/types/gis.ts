@@ -49,7 +49,7 @@ export interface Layer {
 }
 
 export type LayerType = 'vector' | 'raster' | 'api';
-export type SourceType = 'geojson' | 'tiles' | 'wms' | 'api' | 'file';
+export type SourceType = 'geojson' | 'tiles' | 'wms' | 'wfs' | 'api' | 'file';
 
 export interface SourceConfig {
   url?: string;
@@ -58,10 +58,19 @@ export interface SourceConfig {
   attribution?: string;
   apiEndpoint?: string;
   apiParams?: Record<string, string>;
+  /** Image overlay: data URL or object URL of the image */
+  imageUrl?: string;
+  /** Image overlay: 4 corner coordinates [topLeft, topRight, bottomRight, bottomLeft] as [lng, lat] */
+  imageCoordinates?: [
+    [number, number],
+    [number, number],
+    [number, number],
+    [number, number],
+  ];
 }
 
 export interface LayerStyle {
-  type?: 'fill' | 'line' | 'circle' | 'symbol';
+  type?: 'fill' | 'line' | 'circle' | 'symbol' | 'raster';
   paint?: Record<string, unknown>;
   layout?: Record<string, unknown>;
   filter?: unknown[];

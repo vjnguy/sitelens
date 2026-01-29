@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confirm your Siteora account</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #0a0a0f; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #0a0a0f; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width: 480px; width: 100%;">
+
+          <!-- Logo & Brand -->
+          <tr>
+            <td align="center" style="padding-bottom: 32px;">
+              <table role="presentation" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="width: 40px; height: 40px; background: linear-gradient(135deg, #f97316, #ea580c); border-radius: 10px; text-align: center; vertical-align: middle;">
+                    <img src="{{ .SiteURL }}/logo.svg" alt="Siteora" width="40" height="40" style="display: block; border: 0;" />
+                  </td>
+                  <td style="padding-left: 12px;">
+                    <span style="font-size: 22px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px;">Siteora</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Card -->
+          <tr>
+            <td style="background-color: #18181b; border-radius: 12px; border: 1px solid #27272a; padding: 40px 36px;">
+
+              <!-- Heading -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding-bottom: 8px;">
+                    <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #ffffff; line-height: 1.3;">
+                      Confirm your email address
+                    </h1>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding-bottom: 28px;">
+                    <p style="margin: 0; font-size: 15px; color: #a1a1aa; line-height: 1.6;">
+                      Thanks for signing up for Siteora. Click the button below to verify your email and get started with property intelligence.
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- CTA Button -->
+                <tr>
+                  <td style="padding-bottom: 28px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                      <tr>
+                        <td align="center">
+                          <a href="{{ .ConfirmationURL }}"
+                             target="_blank"
+                             style="display: inline-block; background: linear-gradient(135deg, #f97316, #ea580c); color: #ffffff; font-size: 15px; font-weight: 600; text-decoration: none; padding: 12px 32px; border-radius: 8px; letter-spacing: 0.01em;">
+                            Confirm my account
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Divider -->
+                <tr>
+                  <td style="padding-bottom: 20px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="border-top: 1px solid #27272a;"></td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Alt link -->
+                <tr>
+                  <td>
+                    <p style="margin: 0; font-size: 13px; color: #71717a; line-height: 1.6;">
+                      If the button above doesn't work, copy and paste this link into your browser:
+                    </p>
+                    <p style="margin: 8px 0 0 0; font-size: 13px; line-height: 1.5; word-break: break-all;">
+                      <a href="{{ .ConfirmationURL }}" style="color: #f97316; text-decoration: underline;">{{ .ConfirmationURL }}</a>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="padding-top: 28px;">
+              <p style="margin: 0; font-size: 12px; color: #52525b; line-height: 1.6;">
+                Property intelligence powered by official government spatial data.
+              </p>
+              <p style="margin: 6px 0 0 0; font-size: 12px; color: #3f3f46; line-height: 1.6;">
+                Siteora
+              </p>
+              <p style="margin: 10px 0 0 0; font-size: 11px; color: #3f3f46; line-height: 1.5;">
+                If you didn't create an account with Siteora, you can safely ignore this email.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

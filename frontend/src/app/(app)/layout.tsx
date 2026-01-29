@@ -4,43 +4,11 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppHeader } from '@/components/app/AppHeader';
 import { parseLotPlan } from '@/lib/api/property-search';
+import { AppContext, type AppContextValue, type PropertySearchData } from '@/contexts/AppContext';
 
-// Search data passed from header to property panel
-export interface PropertySearchData {
-  type: 'coordinates' | 'lotPlan';
-  coordinates?: [number, number];
-  address?: string;
-  lotPlan?: string;
-}
-
-interface AppContextValue {
-  flyToLocation: (center: [number, number], zoom?: number) => void;
-  searchLotPlan: (lotPlan: string) => void;
-  savedCount: number;
-  compareCount: number;
-  setSavedCount: (count: number) => void;
-  setCompareCount: (count: number) => void;
-  registerMapFlyTo: (fn: (center: [number, number], zoom?: number) => void) => void;
-  registerLotPlanSearch: (fn: (lotPlan: string) => void) => void;
-  // New: for auto-opening property panel with search data
-  pendingSearch: PropertySearchData | null;
-  setPendingSearch: (data: PropertySearchData | null) => void;
-  // New: for triggering map select mode from header
-  triggerMapSelect: () => void;
-  registerMapSelectHandler: (fn: () => void) => void;
-}
-
-import { createContext, useContext } from 'react';
-
-export const AppContext = createContext<AppContextValue | null>(null);
-
-export function useApp() {
-  const context = useContext(AppContext);
-  if (!context) {
-    throw new Error('useApp must be used within AppLayout');
-  }
-  return context;
-}
+// Re-export types for backwards compatibility (types are allowed)
+export type { PropertySearchData } from '@/contexts/AppContext';
+// Note: AppContext should be imported directly from '@/contexts/AppContext'
 
 export default function AppLayout({
   children,

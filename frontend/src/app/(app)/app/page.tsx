@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect, useContext } from "react";
+import { useState, useCallback, useRef, useEffect, useContext, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ThemeToggle } from "@/components/theme-toggle";
 import {
   Layers,
   X,
@@ -28,6 +28,9 @@ import {
   FileText,
   BarChart3,
   MousePointer2,
+  Save,
+  MapPin,
+  FolderOpen,
 } from "lucide-react";
 import type { Layer, Feature, MapState, FeatureCollection } from "@/types/gis";
 import { MAPBOX_STYLES, STYLE_INFO, MapStyle } from "@/lib/mapbox/styles";
@@ -41,7 +44,7 @@ import {
 } from "@/components/ui/tooltip";
 import type { MapViewerRef, PropertyClickData } from "@/components/map/MapViewer";
 import type { LayerStyle } from "@/types/gis";
-import { AppContext, PropertySearchData } from "../layout";
+import { AppContext, type PropertySearchData } from "@/contexts/AppContext";
 
 // Storage key for layer styles
 const LAYER_STYLES_KEY = 'siteora-layer-styles';
@@ -122,13 +125,32 @@ const FeatureInspector = dynamic(
   { ssr: false }
 );
 
+const SaveProjectDialog = dynamic(
+  () => import("@/components/app/SaveProjectDialog").then((mod) => mod.SaveProjectDialog),
+  { ssr: false }
+);
+
+const ProjectMarkersPanel = dynamic(
+  () => import("@/components/map/ProjectMarkersPanel").then((mod) => mod.ProjectMarkersPanel),
+  { ssr: false }
+);
+
+const GeoreferenceDialog = dynamic(
+  () => import("@/components/map/GeoreferenceDialog").then((mod) => mod.GeoreferenceDialog),
+  { ssr: false }
+);
+
 import type { LegendLayer } from "@/components/map/MapLegend";
+import { useLayerPersistence } from "@/hooks/useLayerPersistence";
+import type { OverlaySettings } from "@/components/map/OverlayLayersPanelV2";
 
 // Default center (Brisbane/SEQ)
 const DEFAULT_CENTER: [number, number] = [153.03, -27.47];
 const DEFAULT_ZOOM = 12;
 
-export default function AppMapPage() {
+function AppMapPageContent() {
+  const searchParams = useSearchParams();
+  const projectIdFromUrl = searchParams.get('project');
   const appContext = useContext(AppContext);
   const mapRef = useRef<MapViewerRef>(null);
 
@@ -143,6 +165,12 @@ export default function AppMapPage() {
   const [showStylePanel, setShowStylePanel] = useState(false);
   const [showToolsDropdown, setShowToolsDropdown] = useState(false);
   const [showInspector, setShowInspector] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showMarkersPanel, setShowMarkersPanel] = useState(false);
+  const [projectName, setProjectName] = useState<string | null>(null);
+
+  // Georeferencing state
+  const [georefData, setGeorefData] = useState<{ imageUrl: string; fileName: string } | null>(null);
 
   // Search data from header
   const [initialSearch, setInitialSearch] = useState<PropertySearchData | null>(null);
@@ -157,12 +185,25 @@ export default function AppMapPage() {
   });
   const [mapInstance, setMapInstance] = useState<mapboxgl.Map | null>(null);
 
-  // Layer state
-  const [layers, setLayers] = useState<Layer[]>([]);
+  // Layer state - with persistence (scoped to current project)
+  const {
+    layers,
+    setLayers,
+    projectId: currentProjectId,
+    isLoading: isLoadingLayers,
+    isSaving: isSavingLayers,
+    addLayer: addPersistentLayer,
+    updateLayer: updatePersistentLayer,
+    deleteLayer: deletePersistentLayer,
+  } = useLayerPersistence({ projectId: projectIdFromUrl });
   const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
   const [savedStyles, setSavedStyles] = useState<Record<string, LayerStyle>>({});
   const [legendLayers, setLegendLayers] = useState<LegendLayer[]>([]);
   const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
+
+  // Project overlay settings
+  const [overlaySettings, setOverlaySettings] = useState<OverlaySettings | undefined>(undefined);
+  const overlaySettingsRef = useRef<OverlaySettings | undefined>(undefined);
 
   // Register map controls with app context
   useEffect(() => {
@@ -205,6 +246,58 @@ export default function AppMapPage() {
     setSavedStyles(styles);
   }, []);
 
+  // Load project settings (including overlay settings) when project changes
+  useEffect(() => {
+    if (!projectIdFromUrl) {
+      setOverlaySettings(undefined);
+      setProjectName(null);
+      return;
+    }
+
+    async function loadProjectSettings() {
+      try {
+        const response = await fetch(`/api/projects/${projectIdFromUrl}`);
+        if (response.ok) {
+          const data = await response.json();
+          // Set project name
+          setProjectName(data.project?.name || null);
+
+          const settings = data.project?.settings;
+          if (settings?.overlays) {
+            setOverlaySettings(settings.overlays);
+            overlaySettingsRef.current = settings.overlays;
+          }
+        }
+      } catch (err) {
+        console.error('[App] Error loading project settings:', err);
+      }
+    }
+
+    loadProjectSettings();
+  }, [projectIdFromUrl]);
+
+  // Save overlay settings to project (debounced)
+  const saveOverlaySettings = useCallback(async (settings: OverlaySettings) => {
+    if (!projectIdFromUrl) return;
+
+    // Update ref immediately
+    overlaySettingsRef.current = settings;
+
+    try {
+      await fetch(`/api/projects/${projectIdFromUrl}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          settings: {
+            overlays: settings,
+          },
+        }),
+      });
+    } catch (err) {
+      console.error('[App] Error saving overlay settings:', err);
+    }
+  }, [projectIdFromUrl]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -218,6 +311,7 @@ export default function AppMapPage() {
         setShowAIPanel(false);
         setShowDrawTools(false);
         setShowInspector(false);
+        setShowMarkersPanel(false);
         setSelectedFeature(null);
       }
       if (e.key === 'l' && !e.metaKey && !e.ctrlKey && document.activeElement?.tagName !== 'INPUT') {
@@ -243,29 +337,29 @@ export default function AppMapPage() {
     setShowStylePanel(false);
   }, []);
 
-  // Layer management
+  // Layer management - with persistence
   const toggleLayerVisibility = useCallback((layerId: string) => {
-    setLayers((prev) =>
-      prev.map((l) => (l.id === layerId ? { ...l, visible: !l.visible } : l))
-    );
-  }, []);
+    const layer = layers.find(l => l.id === layerId);
+    if (layer) {
+      updatePersistentLayer(layerId, { visible: !layer.visible });
+    }
+  }, [layers, updatePersistentLayer]);
 
   const removeLayer = useCallback((layerId: string) => {
-    setLayers((prev) => prev.filter((l) => l.id !== layerId));
-  }, []);
+    deletePersistentLayer(layerId);
+  }, [deletePersistentLayer]);
 
   const handleLayerStyleChange = useCallback((layerId: string, newStyle: LayerStyle) => {
-    setLayers(prev => prev.map(layer =>
-      layer.id === layerId ? { ...layer, style: newStyle } : layer
-    ));
+    // Update with persistence
+    updatePersistentLayer(layerId, { style: newStyle });
     setSavedStyles(prev => {
       const updated = { ...prev, [layerId]: newStyle };
       saveStyles(updated);
       return updated;
     });
-  }, []);
+  }, [updatePersistentLayer]);
 
-  const handleAddCustomLayer = useCallback((name: string, geojson: FeatureCollection) => {
+  const handleAddCustomLayer = useCallback(async (name: string, geojson: FeatureCollection) => {
     const geometryType = geojson.features[0]?.geometry?.type || 'Point';
     let style: LayerStyle;
 
@@ -282,9 +376,8 @@ export default function AppMapPage() {
         style = { type: 'circle', paint: { 'circle-radius': 6, 'circle-color': '#e74c3c', 'circle-stroke-width': 2, 'circle-stroke-color': '#fff' } };
     }
 
-    const newLayer: Layer = {
-      id: `custom-${Date.now()}`,
-      project_id: 'app',
+    // Add layer with persistence (saves to Supabase if authenticated)
+    await addPersistentLayer({
       name: `${name} (${geojson.features.length})`,
       type: 'vector',
       source_type: 'geojson',
@@ -292,12 +385,9 @@ export default function AppMapPage() {
       style,
       visible: true,
       order_index: layers.length,
-      created_at: new Date().toISOString(),
       featureCount: geojson.features.length,
-    };
-
-    setLayers(prev => [...prev, newLayer]);
-  }, [layers.length]);
+    });
+  }, [layers.length, addPersistentLayer]);
 
   const zoomToLayerExtent = useCallback((layerId: string) => {
     const layer = layers.find(l => l.id === layerId);
@@ -337,6 +427,52 @@ export default function AppMapPage() {
   const handleMapMove = useCallback((state: MapState) => {
     setMapState(state);
   }, []);
+
+  // Handle project saved - navigate to project URL
+  const handleProjectSaved = useCallback((projectId: string) => {
+    // Update URL to include project ID without full reload
+    window.history.pushState({}, '', `/app?project=${projectId}`);
+    // Reload layers for the new project
+    window.location.href = `/app?project=${projectId}`;
+  }, []);
+
+  // Add an image layer (from georeferencing or GeoTIFF)
+  const addImageLayer = useCallback(async (
+    name: string,
+    imageUrl: string,
+    coordinates: [[number, number], [number, number], [number, number], [number, number]]
+  ) => {
+    await addPersistentLayer({
+      name,
+      type: 'raster',
+      source_type: 'file',
+      source_config: { imageUrl, imageCoordinates: coordinates },
+      style: { type: 'raster', paint: { 'raster-opacity': 0.85 } },
+      visible: true,
+      order_index: layers.length,
+    });
+  }, [layers.length, addPersistentLayer]);
+
+  // Handle raster import from FileImporter
+  const handleRasterImport = useCallback((name: string, imageUrl: string, bounds: [[number, number], [number, number]]) => {
+    const needsGeoreferencing = bounds[0][0] === 0 && bounds[0][1] === 0
+                             && bounds[1][0] === 0 && bounds[1][1] === 0;
+
+    if (needsGeoreferencing) {
+      // Open georeferencing dialog for JPG/PNG
+      setGeorefData({ imageUrl, fileName: name });
+    } else {
+      // GeoTIFF with real bounds — convert to 4 corners and add directly
+      const [min, max] = bounds;
+      const corners: [[number, number], [number, number], [number, number], [number, number]] = [
+        [min[0], max[1]], // top-left
+        [max[0], max[1]], // top-right
+        [max[0], min[1]], // bottom-right
+        [min[0], min[1]], // bottom-left
+      ];
+      addImageLayer(name, imageUrl, corners);
+    }
+  }, [addImageLayer]);
 
   const handleFeatureClick = useCallback((feature: Feature) => {
     setSelectedFeature(feature);
@@ -400,6 +536,26 @@ export default function AppMapPage() {
         />
       </div>
 
+      {/* Saving Indicator */}
+      {isSavingLayers && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
+          <div className="bg-primary/90 text-primary-foreground px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-2 shadow-lg">
+            <div className="h-2 w-2 rounded-full bg-white animate-pulse" />
+            Saving...
+          </div>
+        </div>
+      )}
+
+      {/* Loading Layers Indicator */}
+      {isLoadingLayers && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
+          <div className="bg-background/90 backdrop-blur px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-2 shadow-lg border">
+            <div className="h-3 w-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            Loading workspace...
+          </div>
+        </div>
+      )}
+
       {/* Floating Toolbar - Bottom Center */}
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 pointer-events-auto">
         <TooltipProvider delayDuration={300}>
@@ -453,6 +609,45 @@ export default function AppMapPage() {
 
             <div className="w-px h-6 bg-border" />
 
+            {/* Project Indicator or Save Button */}
+            {projectIdFromUrl ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-xl gap-2"
+                    onClick={() => window.location.href = '/projects'}
+                  >
+                    <FolderOpen className="h-4 w-4 text-blue-500" />
+                    <span className="hidden sm:inline text-xs max-w-[120px] truncate">{projectName || 'Project'}</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>View Projects</p>
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-xl gap-2"
+                    onClick={() => setShowSaveDialog(true)}
+                  >
+                    <Save className="h-4 w-4" />
+                    <span className="hidden sm:inline text-xs">Save Project</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>Save as Project</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+
+            <div className="w-px h-6 bg-border" />
+
             {/* More Tools */}
             <div className="relative">
               <Tooltip>
@@ -488,19 +683,13 @@ export default function AppMapPage() {
                     <FileCode className="h-4 w-4" />
                     <span>Code Sandbox</span>
                   </button>
-                  <button
-                    onClick={() => {
-                      setShowAIPanel(!showAIPanel);
-                      setShowToolsDropdown(false);
-                    }}
-                    className={cn(
-                      "w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2",
-                      showAIPanel && "bg-primary/10"
-                    )}
+                  <div
+                    className="w-full px-3 py-2 text-left text-sm flex items-center gap-2 opacity-50 cursor-not-allowed"
                   >
                     <Bot className="h-4 w-4" />
                     <span>AI Assistant</span>
-                  </button>
+                    <span className="ml-auto text-[10px] bg-muted px-1.5 py-0.5 rounded">Coming Soon</span>
+                  </div>
                   <div className="border-t my-1" />
                   <button
                     onClick={() => {
@@ -519,10 +708,6 @@ export default function AppMapPage() {
               )}
             </div>
 
-            <div className="w-px h-6 bg-border" />
-
-            {/* Theme Toggle */}
-            <ThemeToggle variant="compact" />
           </div>
         </TooltipProvider>
       </div>
@@ -634,8 +819,11 @@ export default function AppMapPage() {
               onEditStyle={(layerId) => setEditingLayerId(layerId)}
               onAddLayer={() => {}}
               onAddCustomLayer={handleAddCustomLayer}
+              onRasterImport={handleRasterImport}
               onClose={() => setShowLayersPanel(false)}
               onActiveLegendLayersChange={setLegendLayers}
+              overlaySettings={overlaySettings}
+              onOverlaySettingsChange={saveOverlaySettings}
             />
           </div>
         )}
@@ -730,6 +918,25 @@ export default function AppMapPage() {
               </TooltipContent>
             </Tooltip>
 
+            {/* Project Markers - only show when in a saved project */}
+            {projectIdFromUrl && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={showMarkersPanel ? "default" : "ghost"}
+                    size="icon"
+                    className={cn("h-9 w-9 rounded-lg", showMarkersPanel && "bg-blue-500 hover:bg-blue-600")}
+                    onClick={() => setShowMarkersPanel(!showMarkersPanel)}
+                  >
+                    <MapPin className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="left" className="z-50">
+                  <p>Project Markers</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+
             <div className="my-1 h-px bg-border" />
 
             {/* Help */}
@@ -781,6 +988,17 @@ export default function AppMapPage() {
             />
           </div>
         )}
+
+        {/* Expanded Panel - Project Markers (full height) */}
+        {showMarkersPanel && projectIdFromUrl && mapInstance && (
+          <div className="w-72 h-[calc(100vh-140px)]">
+            <ProjectMarkersPanel
+              projectId={projectIdFromUrl}
+              map={mapInstance}
+              onClose={() => setShowMarkersPanel(false)}
+            />
+          </div>
+        )}
       </div>
 
       {/* Code Sandbox */}
@@ -806,10 +1024,11 @@ export default function AppMapPage() {
         onClose={() => setShowInspector(false)}
         rightOffset={
           // Calculate offset based on open right-side panels
-          showMeasurement || showElevation ? 360 : // w-72 panels + icon bar + gaps
+          showMeasurement || showElevation || showMarkersPanel ? 360 : // w-72 panels + icon bar + gaps
           showDrawTools ? 340 : // w-64 panel + icon bar + gaps
           64 // Just the icon bar
         }
+        userLayers={layers}
       />
 
       {/* Layer Style Editor */}
@@ -863,6 +1082,32 @@ export default function AppMapPage() {
         </div>
       )}
 
+      {/* Save Project Dialog */}
+      <SaveProjectDialog
+        open={showSaveDialog}
+        onOpenChange={setShowSaveDialog}
+        mapState={mapState}
+        layerCount={layers.length}
+        onSaved={handleProjectSaved}
+      />
+
+      {/* Georeference Dialog */}
+      {georefData && (
+        <GeoreferenceDialog
+          open={!!georefData}
+          onOpenChange={(open) => { if (!open) setGeorefData(null); }}
+          imageUrl={georefData.imageUrl}
+          fileName={georefData.fileName}
+          mapCenter={mapState.center}
+          mapZoom={mapState.zoom}
+          onComplete={(result) => {
+            addImageLayer(result.name, result.imageUrl, result.coordinates);
+            setGeorefData(null);
+          }}
+          onCancel={() => setGeorefData(null)}
+        />
+      )}
+
       {/* Click outside to close dropdowns */}
       {(showStylePanel || showToolsDropdown) && (
         <div
@@ -874,5 +1119,18 @@ export default function AppMapPage() {
         />
       )}
     </div>
+  );
+}
+
+// Wrap in Suspense for useSearchParams
+export default function AppMapPage() {
+  return (
+    <Suspense fallback={
+      <div className="w-full h-full bg-slate-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white" />
+      </div>
+    }>
+      <AppMapPageContent />
+    </Suspense>
   );
 }

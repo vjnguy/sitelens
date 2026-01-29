@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { DemoVideo } from "@/components/landing/DemoVideo";
+import { StaticAppPreview } from "@/components/landing/StaticAppPreview";
+import { CoverageMap } from "@/components/landing/CoverageMap";
 import { Logo } from "@/components/Logo";
 import {
   ArrowRight,
@@ -101,8 +102,8 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Product Screenshot with Video */}
-            <DemoVideo videoSrc="/demo.mp4" />
+            {/* Product Screenshot */}
+            <StaticAppPreview />
           </div>
         </section>
 
@@ -462,16 +463,7 @@ export default function Home() {
 
               {/* Map visual */}
               <div className="relative">
-                <div className="aspect-square rounded-3xl bg-zinc-900 border border-white/10 overflow-hidden">
-                  <div className="absolute inset-0 bg-[url('https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/145,-28,4,0/600x600?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw')] bg-cover bg-center opacity-40" />
-                  {/* QLD highlight - active */}
-                  <div className="absolute top-1/4 right-1/4 w-20 h-32 bg-orange-500/30 rounded-lg border-2 border-orange-500/60" />
-                  {/* NSW highlight - coming soon */}
-                  <div className="absolute top-1/2 right-1/3 w-16 h-20 bg-zinc-500/20 rounded-lg border-2 border-zinc-500/40 border-dashed" />
-                  {/* Labels */}
-                  <div className="absolute top-1/3 right-1/4 bg-orange-500 text-white text-xs px-2 py-1 rounded font-medium">QLD</div>
-                  <div className="absolute top-1/2 right-1/3 bg-zinc-700 text-zinc-400 text-xs px-2 py-1 rounded font-medium">NSW</div>
-                </div>
+                <CoverageMap />
               </div>
             </div>
           </div>

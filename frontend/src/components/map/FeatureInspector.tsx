@@ -13,11 +13,14 @@ import {
   MapPin,
   Layers,
   ExternalLink,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import type mapboxgl from "mapbox-gl";
 import { ALL_LAYERS, type OverlayLayer } from "@/lib/overlays";
+import { identifyArcGISFeatures } from "@/lib/overlays/adapters";
+import type { Layer } from "@/types/gis";
 
 interface FeatureInfo {
   layerId: string;
@@ -25,6 +28,8 @@ interface FeatureInfo {
   properties: Record<string, unknown>;
   geometry?: GeoJSON.Geometry;
   coordinates?: [number, number];
+  /** Source type for styling the result differently */
+  source?: "overlay" | "user";
 }
 
 interface FeatureInspectorProps {
@@ -33,6 +38,8 @@ interface FeatureInspectorProps {
   onClose: () => void;
   /** Offset from right edge to avoid overlapping with other panels (in pixels) */
   rightOffset?: number;
+  /** User-imported layers from the Layers tab */
+  userLayers?: Layer[];
 }
 
 // Format property values for display
@@ -83,19 +90,24 @@ function filterProperties(props: Record<string, unknown>): Record<string, unknow
   );
 }
 
-export function FeatureInspector({ map, enabled, onClose, rightOffset = 64 }: FeatureInspectorProps) {
+export function FeatureInspector({ map, enabled, onClose, rightOffset = 64, userLayers = [] }: FeatureInspectorProps) {
   const [features, setFeatures] = useState<FeatureInfo[]>([]);
   const [expandedFeature, setExpandedFeature] = useState<number>(0);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
 
-  // Get list of active overlay layer IDs
-  const getActiveOverlayLayerIds = useCallback((): string[] => {
+  // Get list of active overlay layer IDs (vector layers only - for queryRenderedFeatures)
+  const getActiveVectorLayerIds = useCallback((): string[] => {
     if (!map) return [];
 
     const layerIds: string[] = [];
     ALL_LAYERS.forEach((layer) => {
+      // Skip raster layers - they need server-side identify
+      if (layer.service.type === 'arcgis-dynamic' || layer.service.type === 'arcgis-cached') {
+        return;
+      }
       if (map.getLayer(layer.id)) {
         layerIds.push(layer.id);
       }
@@ -107,48 +119,172 @@ export function FeatureInspector({ map, enabled, onClose, rightOffset = 64 }: Fe
     return layerIds;
   }, [map]);
 
+  // Get list of visible user layer IDs
+  const getActiveUserLayerIds = useCallback((): Array<{ id: string; name: string }> => {
+    if (!map) return [];
+
+    const activeUserLayers: Array<{ id: string; name: string }> = [];
+    userLayers.forEach((layer) => {
+      // Only include visible layers that are on the map
+      if (layer.visible && map.getLayer(layer.id)) {
+        activeUserLayers.push({ id: layer.id, name: layer.name });
+      }
+    });
+    return activeUserLayers;
+  }, [map, userLayers]);
+
+  // Get active raster layers that need server-side identify
+  const getActiveRasterLayers = useCallback((): OverlayLayer[] => {
+    if (!map) return [];
+
+    return ALL_LAYERS.filter((layer) => {
+      // Only arcgis-dynamic and arcgis-cached support identify
+      if (layer.service.type !== 'arcgis-dynamic' && layer.service.type !== 'arcgis-cached') {
+        return false;
+      }
+      // Check if layer is visible on map
+      return map.getLayer(layer.id) !== undefined;
+    });
+  }, [map]);
+
   // Handle map click for feature inspection
   useEffect(() => {
     if (!map || !enabled) return;
 
-    const handleClick = (e: mapboxgl.MapMouseEvent) => {
-      const overlayLayerIds = getActiveOverlayLayerIds();
-      if (overlayLayerIds.length === 0) return;
+    const handleClick = async (e: mapboxgl.MapMouseEvent) => {
+      const vectorLayerIds = getActiveVectorLayerIds();
+      const rasterLayers = getActiveRasterLayers();
+      const activeUserLayers = getActiveUserLayerIds();
 
-      // Query features at click point
-      const clickedFeatures = map.queryRenderedFeatures(e.point, {
-        layers: overlayLayerIds,
-      });
+      if (vectorLayerIds.length === 0 && rasterLayers.length === 0 && activeUserLayers.length === 0) return;
 
-      if (clickedFeatures.length === 0) {
-        setFeatures([]);
-        return;
+      // Show loading state if we need to query raster layers
+      if (rasterLayers.length > 0) {
+        setIsLoading(true);
       }
 
-      // Convert to FeatureInfo format
-      const featureInfos: FeatureInfo[] = clickedFeatures
-        .filter((f) => f.layer) // Filter out features without layer info
-        .map((f) => {
-          // Find the overlay layer definition
-          let layerId = f.layer!.id;
-          // Remove -outline suffix if present
-          if (layerId.endsWith("-outline")) {
-            layerId = layerId.replace("-outline", "");
-          }
+      const allFeatures: FeatureInfo[] = [];
 
-          const overlayLayer = ALL_LAYERS.find((l) => l.id === layerId);
-
-          return {
-            layerId,
-            layerName: overlayLayer?.name || layerId,
-            properties: (f.properties || {}) as Record<string, unknown>,
-            geometry: f.geometry,
-            coordinates: [e.lngLat.lng, e.lngLat.lat],
-          };
+      // Query user-imported layers first (they're typically more relevant)
+      if (activeUserLayers.length > 0) {
+        const userLayerIds = activeUserLayers.map((l) => l.id);
+        const clickedUserFeatures = map.queryRenderedFeatures(e.point, {
+          layers: userLayerIds,
         });
 
+        // Convert to FeatureInfo format
+        const userFeatures: FeatureInfo[] = clickedUserFeatures
+          .filter((f) => f.layer)
+          .map((f) => {
+            const layerId = f.layer!.id;
+            const userLayer = activeUserLayers.find((l) => l.id === layerId);
+            return {
+              layerId,
+              layerName: userLayer?.name || layerId,
+              properties: (f.properties || {}) as Record<string, unknown>,
+              geometry: f.geometry,
+              coordinates: [e.lngLat.lng, e.lngLat.lat] as [number, number],
+              source: "user" as const,
+            };
+          });
+
+        allFeatures.push(...userFeatures);
+      }
+
+      // Query overlay vector features at click point (client-side)
+      if (vectorLayerIds.length > 0) {
+        const clickedFeatures = map.queryRenderedFeatures(e.point, {
+          layers: vectorLayerIds,
+        });
+
+        // Convert to FeatureInfo format
+        const vectorFeatures: FeatureInfo[] = clickedFeatures
+          .filter((f) => f.layer)
+          .map((f) => {
+            let layerId = f.layer!.id;
+            if (layerId.endsWith("-outline")) {
+              layerId = layerId.replace("-outline", "");
+            }
+            const overlayLayer = ALL_LAYERS.find((l) => l.id === layerId);
+            return {
+              layerId,
+              layerName: overlayLayer?.name || layerId,
+              properties: (f.properties || {}) as Record<string, unknown>,
+              geometry: f.geometry,
+              coordinates: [e.lngLat.lng, e.lngLat.lat] as [number, number],
+              source: "overlay" as const,
+            };
+          });
+
+        allFeatures.push(...vectorFeatures);
+      }
+
+      // Query raster layers via server-side identify
+      if (rasterLayers.length > 0) {
+        const bounds = map.getBounds();
+        if (!bounds) {
+          setIsLoading(false);
+          return;
+        }
+        const mapExtent: [number, number, number, number] = [
+          bounds.getWest(),
+          bounds.getSouth(),
+          bounds.getEast(),
+          bounds.getNorth(),
+        ];
+        const canvas = map.getCanvas();
+        const mapSize: [number, number] = [canvas.width, canvas.height];
+
+        // Query each raster layer
+        for (const layer of rasterLayers) {
+          if (layer.service.type !== 'arcgis-dynamic' && layer.service.type !== 'arcgis-cached') {
+            continue;
+          }
+
+          const config = layer.service;
+          // Get layer IDs to query - from dynamicLayers JSON or layers array
+          let layerIds: number[] | undefined;
+          if (config.type === 'arcgis-dynamic') {
+            if (config.dynamicLayers) {
+              try {
+                const dynamicLayersJson = JSON.parse(config.dynamicLayers);
+                layerIds = dynamicLayersJson.map((dl: { id: number }) => dl.id);
+              } catch {
+                // Ignore parse errors
+              }
+            } else if (config.layers) {
+              layerIds = config.layers;
+            }
+          }
+
+          try {
+            const results = await identifyArcGISFeatures(
+              config.url,
+              [e.lngLat.lng, e.lngLat.lat],
+              mapExtent,
+              mapSize,
+              layerIds,
+              5 // tolerance in pixels
+            );
+
+            // Convert identify results to FeatureInfo format
+            for (const result of results) {
+              allFeatures.push({
+                layerId: layer.id,
+                layerName: layer.name,
+                properties: result.attributes,
+                coordinates: [e.lngLat.lng, e.lngLat.lat],
+                source: "overlay" as const,
+              });
+            }
+          } catch (error) {
+            console.error(`[FeatureInspector] Error identifying features for ${layer.id}:`, error);
+          }
+        }
+      }
+
       // Remove duplicates (same layer, same properties)
-      const uniqueFeatures = featureInfos.filter(
+      const uniqueFeatures = allFeatures.filter(
         (f, i, arr) =>
           arr.findIndex(
             (x) => x.layerId === f.layerId && JSON.stringify(x.properties) === JSON.stringify(f.properties)
@@ -158,20 +294,12 @@ export function FeatureInspector({ map, enabled, onClose, rightOffset = 64 }: Fe
       setFeatures(uniqueFeatures);
       setExpandedFeature(0);
       setCursorPosition({ x: e.point.x, y: e.point.y });
+      setIsLoading(false);
     };
 
-    const handleMouseMove = (e: mapboxgl.MapMouseEvent) => {
-      const overlayLayerIds = getActiveOverlayLayerIds();
-      if (overlayLayerIds.length === 0) {
-        map.getCanvas().style.cursor = "";
-        return;
-      }
-
-      const hoveredFeatures = map.queryRenderedFeatures(e.point, {
-        layers: overlayLayerIds,
-      });
-
-      map.getCanvas().style.cursor = hoveredFeatures.length > 0 ? "crosshair" : "crosshair";
+    const handleMouseMove = () => {
+      // Always show crosshair in inspection mode
+      map.getCanvas().style.cursor = "crosshair";
     };
 
     map.on("click", handleClick);
@@ -185,7 +313,7 @@ export function FeatureInspector({ map, enabled, onClose, rightOffset = 64 }: Fe
       map.off("mousemove", handleMouseMove);
       map.getCanvas().style.cursor = "";
     };
-  }, [map, enabled, getActiveOverlayLayerIds]);
+  }, [map, enabled, getActiveVectorLayerIds, getActiveRasterLayers, getActiveUserLayerIds]);
 
   // Copy value to clipboard
   const copyValue = useCallback((key: string, value: unknown) => {
@@ -227,9 +355,27 @@ export function FeatureInspector({ map, enabled, onClose, rightOffset = 64 }: Fe
         </motion.div>
       </div>
 
+      {/* Loading Indicator */}
+      <AnimatePresence>
+        {isLoading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute top-20 z-20 pointer-events-auto"
+            style={{ right: rightOffset }}
+          >
+            <div className="bg-background/95 backdrop-blur rounded-lg shadow-xl border p-4 flex items-center gap-3">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <span className="text-sm text-muted-foreground">Querying features...</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Feature Info Panel */}
       <AnimatePresence>
-        {features.length > 0 && (
+        {!isLoading && features.length > 0 && (
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -281,6 +427,11 @@ export function FeatureInspector({ map, enabled, onClose, rightOffset = 64 }: Fe
                               <span className="font-medium text-sm truncate">
                                 {feature.layerName}
                               </span>
+                              {feature.source === "user" && (
+                                <Badge variant="outline" className="text-[10px] h-4 px-1.5 border-primary/50 text-primary">
+                                  Layer
+                                </Badge>
+                              )}
                               <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
                                 {propCount} fields
                               </Badge>

@@ -4,7 +4,6 @@ import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
 import {
   Layers,
   Database,
@@ -18,8 +17,6 @@ import {
   X,
   ChevronRight,
   ChevronDown,
-  Upload,
-  Link2,
   Play,
   Square,
   Minus,
@@ -29,29 +26,16 @@ import {
   FolderPlus,
   Folder,
   FolderOpen,
-  GripVertical,
   Table,
   List,
   FileJson,
   Globe,
-  FileUp,
-  MapPinned,
-  FileArchive,
-  CheckCircle2,
-  AlertCircle,
-  ExternalLink,
 } from "lucide-react";
 import type { Layer, LayerStyle, Feature, FeatureCollection } from "@/types/gis";
 import { cn } from "@/lib/utils";
-import {
-  importFile,
-  importFromUrl,
-  getSupportedFileTypes,
-  getFormatDescription,
-  type ImportResult,
-} from "@/lib/import/file-import";
-import { OverlayLayersPanelV2 } from "./OverlayLayersPanelV2";
+import { OverlayLayersPanelV2, type OverlaySettings } from "./OverlayLayersPanelV2";
 import { LegendLayer } from "./MapLegend";
+import { FileImporter } from "./FileImporter";
 
 interface LayerGroup {
   id: string;
@@ -69,8 +53,13 @@ interface LayersPanelProps {
   onEditStyle: (layerId: string) => void;
   onAddLayer: () => void;
   onAddCustomLayer?: (name: string, geojson: FeatureCollection) => void;
+  onRasterImport?: (name: string, imageUrl: string, bounds: [[number, number], [number, number]]) => void;
   onClose: () => void;
   onActiveLegendLayersChange?: (layers: LegendLayer[]) => void;
+  /** Initial overlay settings from project */
+  overlaySettings?: OverlaySettings;
+  /** Callback when overlay settings change */
+  onOverlaySettingsChange?: (settings: OverlaySettings) => void;
   className?: string;
 }
 
@@ -86,8 +75,11 @@ export function LayersPanel({
   onEditStyle,
   onAddLayer,
   onAddCustomLayer,
+  onRasterImport,
   onClose,
   onActiveLegendLayersChange,
+  overlaySettings,
+  onOverlaySettingsChange,
   className,
 }: LayersPanelProps) {
   const [activeTab, setActiveTab] = useState<TabType>("overlays"); // Default to overlays tab
@@ -104,10 +96,6 @@ export function LayersPanel({
   const [customDataName, setCustomDataName] = useState("");
   const [customDataJson, setCustomDataJson] = useState("");
   const [customDataError, setCustomDataError] = useState<string | null>(null);
-  const [customDataUrl, setCustomDataUrl] = useState("");
-  const [isLoadingUrl, setIsLoadingUrl] = useState(false);
-  const [isLoadingFile, setIsLoadingFile] = useState(false);
-  const [lastImportResult, setLastImportResult] = useState<ImportResult | null>(null);
 
   // Code editor
   const [codeContent, setCodeContent] = useState(`// Spatial analysis code
@@ -223,71 +211,11 @@ if (cadastre) {
       setCustomDataJson("");
       setCustomDataError(null);
       setShowCustomInput(false);
+      // Switch to Layers tab to show the imported layer
+      setActiveTab("layers");
     } catch (err) {
       setCustomDataError("Invalid JSON format");
     }
-  };
-
-  const handleLoadFromUrl = async () => {
-    if (!customDataUrl.trim()) return;
-
-    setIsLoadingUrl(true);
-    setCustomDataError(null);
-    setLastImportResult(null);
-
-    try {
-      const result = await importFromUrl(customDataUrl);
-      setLastImportResult(result);
-
-      if (!result.success || !result.data) {
-        setCustomDataError(result.error || "Failed to load data from URL");
-        return;
-      }
-
-      // Extract name from URL (remove extension and query params)
-      const urlParts = customDataUrl.split("/");
-      let fileName = urlParts[urlParts.length - 1].split("?")[0];
-      fileName = fileName.replace(/\.(geojson|json|kml|kmz|zip|shp)$/i, "");
-
-      onAddCustomLayer?.(fileName || "Imported Layer", result.data);
-      setCustomDataUrl("");
-      setShowCustomInput(false);
-    } catch (err) {
-      setCustomDataError("Failed to load data from URL");
-    } finally {
-      setIsLoadingUrl(false);
-    }
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsLoadingFile(true);
-    setCustomDataError(null);
-    setLastImportResult(null);
-
-    try {
-      const result = await importFile(file);
-      setLastImportResult(result);
-
-      if (!result.success || !result.data) {
-        setCustomDataError(result.error || "Failed to parse file");
-        return;
-      }
-
-      // Remove extension from filename
-      const name = file.name.replace(/\.(geojson|json|kml|kmz|zip|shp)$/i, "");
-      onAddCustomLayer?.(name, result.data);
-      setShowCustomInput(false);
-    } catch (err) {
-      setCustomDataError("Failed to parse file");
-    } finally {
-      setIsLoadingFile(false);
-    }
-
-    // Reset input
-    e.target.value = "";
   };
 
   const tabs: { id: TabType; label: string; icon: typeof Layers }[] = [
@@ -689,6 +617,8 @@ if (cadastre) {
           <OverlayLayersPanelV2
             map={map || null}
             onActiveLegendLayersChange={onActiveLegendLayersChange}
+            initialSettings={overlaySettings}
+            onSettingsChange={onOverlaySettingsChange}
           />
         </div>
       )}
@@ -698,137 +628,59 @@ if (cadastre) {
         <div className="flex-1 overflow-y-auto p-3">
           {showCustomInput ? (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="font-medium">Add Custom Data</span>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 w-7 p-0"
-                  onClick={() => {
-                    setShowCustomInput(false);
-                    setCustomDataError(null);
-                  }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+              {/* File Importer Component */}
+              <FileImporter
+                onImport={(name, data) => {
+                  onAddCustomLayer?.(name, data);
+                  // Switch to Layers tab to show the imported layer
+                  setShowCustomInput(false);
+                  setActiveTab("layers");
+                }}
+                onRasterImport={onRasterImport ? (name, imageUrl, bounds) => {
+                  onRasterImport(name, imageUrl, bounds);
+                  setShowCustomInput(false);
+                  setActiveTab("layers");
+                } : undefined}
+                onClose={() => {
+                  setShowCustomInput(false);
+                  setCustomDataError(null);
+                }}
+              />
 
-              {/* File Upload */}
-              <div className="space-y-2">
-                <Label className="text-xs font-medium">Upload File</Label>
-                <label className={cn(
-                  "flex flex-col items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors",
-                  isLoadingFile ? "opacity-50 cursor-wait" : "hover:bg-muted/30 hover:border-primary/50"
-                )}>
-                  {isLoadingFile ? (
-                    <Loader2 className="h-6 w-6 text-primary animate-spin" />
-                  ) : (
-                    <FileUp className="h-6 w-6 text-muted-foreground" />
-                  )}
-                  <div className="text-center">
-                    <span className="text-sm text-foreground font-medium">
-                      {isLoadingFile ? "Processing..." : "Drop file or click to browse"}
-                    </span>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      GeoJSON, KML, KMZ, Shapefile (.zip)
-                    </p>
-                  </div>
-                  <input
-                    type="file"
-                    accept={getSupportedFileTypes()}
-                    onChange={handleFileUpload}
-                    className="hidden"
-                    disabled={isLoadingFile}
-                  />
-                </label>
-
-                {/* Import result feedback */}
-                {lastImportResult && (
-                  <div className={cn(
-                    "flex items-start gap-2 p-2 rounded-lg text-xs",
-                    lastImportResult.success
-                      ? "bg-green-500/10 text-green-700 dark:text-green-400"
-                      : "bg-destructive/10 text-destructive"
-                  )}>
-                    {lastImportResult.success ? (
-                      <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                    ) : (
-                      <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                    )}
-                    <div>
-                      {lastImportResult.success ? (
-                        <>
-                          <p className="font-medium">Imported {lastImportResult.featureCount} features</p>
-                          <p className="text-muted-foreground">
-                            Format: {getFormatDescription(lastImportResult.format)}
-                            {lastImportResult.extractedImages && lastImportResult.extractedImages > 0 && (
-                              <> • {lastImportResult.extractedImages} images extracted</>
-                            )}
-                          </p>
-                        </>
-                      ) : (
-                        <p>{lastImportResult.error}</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* URL Input */}
-              <div className="space-y-2">
-                <Label className="text-xs font-medium">Load from URL</Label>
-                <div className="flex gap-2">
+              {/* Paste GeoJSON - collapsible */}
+              <div className="pt-3 border-t">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                  Or Paste GeoJSON
+                </p>
+                <div className="space-y-2">
                   <Input
-                    placeholder="https://example.com/data.geojson"
-                    value={customDataUrl}
-                    onChange={(e) => setCustomDataUrl(e.target.value)}
-                    className="flex-1 h-9 text-sm"
+                    placeholder="Layer name..."
+                    value={customDataName}
+                    onChange={(e) => setCustomDataName(e.target.value)}
+                    className="h-9 text-sm"
                   />
+                  <textarea
+                    className="w-full h-24 p-2 text-xs font-mono border rounded-lg resize-none focus:outline-none focus:ring-1 focus:ring-primary bg-muted/30"
+                    placeholder='{"type": "FeatureCollection", "features": [...]}'
+                    value={customDataJson}
+                    onChange={(e) => {
+                      setCustomDataJson(e.target.value);
+                      setCustomDataError(null);
+                    }}
+                  />
+                  {customDataError && (
+                    <p className="text-xs text-destructive">{customDataError}</p>
+                  )}
                   <Button
                     size="sm"
-                    className="h-9"
-                    onClick={handleLoadFromUrl}
-                    disabled={isLoadingUrl || !customDataUrl.trim()}
+                    className="w-full"
+                    onClick={handleAddCustomData}
+                    disabled={!customDataName.trim() || !customDataJson.trim()}
                   >
-                    {isLoadingUrl ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Globe className="h-4 w-4" />
-                    )}
+                    <FileJson className="h-4 w-4 mr-1" />
+                    Add GeoJSON Layer
                   </Button>
                 </div>
-              </div>
-
-              {/* Paste GeoJSON */}
-              <div className="space-y-2">
-                <Label className="text-xs font-medium">Paste GeoJSON</Label>
-                <Input
-                  placeholder="Layer name..."
-                  value={customDataName}
-                  onChange={(e) => setCustomDataName(e.target.value)}
-                  className="h-9 text-sm"
-                />
-                <textarea
-                  className="w-full h-32 p-2 text-xs font-mono border rounded-lg resize-none focus:outline-none focus:ring-1 focus:ring-primary bg-muted/30"
-                  placeholder='{"type": "FeatureCollection", "features": [...]}'
-                  value={customDataJson}
-                  onChange={(e) => {
-                    setCustomDataJson(e.target.value);
-                    setCustomDataError(null);
-                  }}
-                />
-                {customDataError && (
-                  <p className="text-xs text-destructive">{customDataError}</p>
-                )}
-                <Button
-                  size="sm"
-                  className="w-full"
-                  onClick={handleAddCustomData}
-                  disabled={!customDataName.trim() || !customDataJson.trim()}
-                >
-                  <FileJson className="h-4 w-4 mr-1" />
-                  Add GeoJSON Layer
-                </Button>
               </div>
             </div>
           ) : (
@@ -879,7 +731,7 @@ if (cadastre) {
 
               <div className="pt-3 border-t">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                  Custom Data
+                  Import Data
                 </p>
                 <Button
                   variant="outline"
@@ -888,7 +740,7 @@ if (cadastre) {
                   onClick={() => setShowCustomInput(true)}
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Custom GeoJSON / URL
+                  Import File or URL
                 </Button>
               </div>
             </div>
