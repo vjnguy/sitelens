@@ -106,6 +106,10 @@ export interface ArcGISFeatureConfig extends BaseServiceConfig {
   where?: string;
   /** Geometry type hint (avoids runtime detection issues) */
   geometryType?: 'polygon' | 'line' | 'point';
+  /** Style attribute for data-driven styling */
+  styleAttribute?: string;
+  /** Style mapping: attribute value -> color */
+  styleMap?: Record<string, string>;
 }
 
 export interface WMSConfig extends BaseServiceConfig {

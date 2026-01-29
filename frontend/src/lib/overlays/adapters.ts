@@ -600,9 +600,22 @@ export async function addOverlayLayer(
     const firstFeature = geojson.features[0];
 
     if (detectedGeomType === 'polygon') {
-      // Determine fill color expression - use data-driven styling for flood layers
+      // Determine fill color expression - use data-driven styling for categorized layers
       let fillColor: any = layer.style.fillColor || '#3b82f6';
       let strokeColor: any = layer.style.strokeColor || '#1e40af';
+
+      // Generic data-driven styling via styleAttribute + styleMap on service config
+      const serviceConfig = layer.service as any;
+      if (serviceConfig.styleAttribute && serviceConfig.styleMap && firstFeature?.properties) {
+        const attr = serviceConfig.styleAttribute;
+        const sMap = serviceConfig.styleMap as Record<string, string>;
+        const matchExpr: any[] = ['match', ['get', attr]];
+        for (const [value, color] of Object.entries(sMap)) {
+          matchExpr.push(value, color);
+        }
+        matchExpr.push('#cccccc'); // fallback
+        fillColor = matchExpr;
+      }
 
       // Check if this is a flood awareness layer with categorized data
       // Brisbane FAM layers use FLOOD_RISK attribute with string values
